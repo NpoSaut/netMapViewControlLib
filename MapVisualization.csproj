@@ -47,10 +47,12 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DrawingContainer.cs" />
     <Page Include="Themes\Generic.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Compile Include="Elements\MapElement.cs" />
     <Compile Include="MapView.cs">
       <SubType>Code</SubType>
     </Compile>

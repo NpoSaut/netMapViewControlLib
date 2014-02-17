@@ -1,11 +1,17 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net;
+using System.Security.Policy;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using MapVisualization.Elements;
 
 namespace MapVisualization
 {
-    public class MapView : Panel
+    public class MapView : DrawingContainer
     {
         static MapView()
         {
@@ -14,53 +20,41 @@ namespace MapVisualization
 
         public MapView()
         {
-            AddVisual(GetVisual(100, 50));
-            AddVisual(GetVisual(200, 250));
+            var el = GetMapTile(13, 5472, 2514);
+            AddElement(el);
         }
 
-        private TranslateTransform transform = new TranslateTransform();
-
-        private MapVisual GetVisual(double x0, double y0)
+        private MapTileElement GetMapTile(int Scale, int x, int y)
         {
-            var res = new MapVisual();
-            using (var dc = res.RenderOpen())
+            var u = new Uri(String.Format("http://a.tile.openstreetmap.org/{0}/{1}/{2}.png", Scale, x, y));
+            MemoryStream bitmapStream;
+            using (var wc = new WebClient())
             {
-                dc.DrawRectangle(Brushes.BlueViolet, new Pen(Brushes.DarkMagenta, 3), new Rect(x0, y0, 50, 50));
+                bitmapStream = new MemoryStream(wc.DownloadData(u));
             }
-            res.Transform = transform;
-            return res;
+            var source = new BitmapImage();
+            source.BeginInit();
+            source.StreamSource = bitmapStream;
+            source.EndInit();
+            return new MapTileElement(source);
         }
 
-        private readonly List<MapVisual> _visuals = new List<MapVisual>();
+        private readonly List<MapElement> _elements = new List<MapElement>();
 
-        protected override int VisualChildrenCount
+        private void AddElement(MapElement Element)
         {
-            get { return _visuals.Count; }
+            _elements.Add(Element);
+            var visual = Element.GetVisual();
+            visual.Transform = _globalTransform;
+            AddVisual(visual);
         }
 
-        protected override Visual GetVisualChild(int index)
-        {
-            return _visuals[index];
-        }
-
-        protected void AddVisual(MapVisual v)
-        {
-            _visuals.Add(v);
-            base.AddVisualChild(v);
-            base.AddLogicalChild(v);
-        }
-
-        protected void DeleteVisual(MapVisual v)
-        {
-            _visuals.Remove(v);
-            base.RemoveVisualChild(v);
-            base.RemoveLogicalChild(v);
-        }
+        private TranslateTransform _globalTransform = new TranslateTransform();
 
         public void Move(double dx, double dy)
         {
-            transform.X += dx;
-            transform.Y += dy;
+            _globalTransform.X += dx;
+            _globalTransform.Y += dy;
         }
     }
 }
