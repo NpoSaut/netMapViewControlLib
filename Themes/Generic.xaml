@@ -14,5 +14,6 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>-->
+        <Setter Property="ClipToBounds" Value="True" />
     </Style>
 </ResourceDictionary>
