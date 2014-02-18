@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Windows;
 using Geographics;
 
@@ -41,7 +42,7 @@ namespace MapVisualization
         {
             var surfacePoint = (SurfacePoint)p;
             double mpp = Scales[Zoom];
-            return new Point(surfacePoint.X/mpp, -surfacePoint.Y/mpp);
+            return new Point(Math.Round(surfacePoint.X/mpp), Math.Round(-surfacePoint.Y/mpp));
         }
     }
 }

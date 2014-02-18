@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Media;
 
@@ -6,6 +7,16 @@ namespace MapVisualization.Elements
 {
     public abstract class MapElement
     {
+        protected static GuidelineSet ScreenGuidelineSet;
+
+        static MapElement()
+        {
+
+            ScreenGuidelineSet = new GuidelineSet(
+                Enumerable.Range(0, 40000).Select(x => (double)x).ToArray(),
+                Enumerable.Range(0, 40000).Select(y => (double)y).ToArray());
+        }
+
         protected abstract void Draw(DrawingContext dc, int Zoom);
 
         protected ScreenProjector Projector { get { return ScreenProjector.DefaultProjector; } }
@@ -41,6 +52,7 @@ namespace MapVisualization.Elements
         {
             var topLeftPoint = OsmIndexes.GetTopLeftPoint(HorizontalIndex, VerticalIndex, RenderZoom);
             var topLeftPointScreenProjection = Projector.Project(topLeftPoint, RenderZoom);
+            dc.PushGuidelineSet(ScreenGuidelineSet);
             dc.DrawImage(TileImage, new Rect(topLeftPointScreenProjection, new Size(TileImage.Width, TileImage.Height)));
         }
     }
