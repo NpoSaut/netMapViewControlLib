@@ -48,6 +48,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DrawingContainer.cs" />
+    <Compile Include="Properties\Annotations.cs" />
+    <Compile Include="TileLoaders\AppDataFileCacheTileLoader.cs" />
+    <Compile Include="TileLoaders\FileCacheTileLoader.cs" />
+    <Compile Include="TileLoaders\ITileLoader.cs" />
     <Page Include="Themes\Generic.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

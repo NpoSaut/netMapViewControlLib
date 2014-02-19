@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Runtime.Remoting.Channels;
 using System.Windows;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using Geographics;
 using MapVisualization.Elements;
+using MapVisualization.TileLoaders;
 
 namespace MapVisualization
 {
@@ -17,6 +13,15 @@ namespace MapVisualization
         static MapView()
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(MapView), new FrameworkPropertyMetadata(typeof(MapView)));
+        }
+
+        public static readonly DependencyProperty TileLoaderProperty = DependencyProperty.Register(
+                                                        "TileLoader", typeof (ITileLoader), typeof (MapView), new PropertyMetadata(AppDataFileCacheTileLoader.DefaultLoader));
+
+        public ITileLoader TileLoader
+        {
+            get { return (ITileLoader)GetValue(TileLoaderProperty); }
+            set { SetValue(TileLoaderProperty, value); }
         }
 
         public EarthPoint TopLeftPoint { get; set; }
@@ -33,26 +38,17 @@ namespace MapVisualization
             int x0 = OsmIndexes.GetHorizontalIndex(TopLeftPoint.Longitude, ZoomLevel);
             int y0 = OsmIndexes.GetVerticalIndex(TopLeftPoint.Latitude, ZoomLevel);
 
-            var tiles = Enumerable.Range(x0, 4).SelectMany(x => Enumerable.Range(y0, 4).Select(y => GetMapTile(ZoomLevel, x, y)));
+            var tiles = Enumerable.Range(x0, 4).SelectMany(x => Enumerable.Range(y0, 4).Select(y => GetMapTile(x, y, ZoomLevel)));
             foreach (var tile in tiles)
             {
                 AddElement(tile);
             }
         }
 
-        private MapTileElement GetMapTile(int Scale, int x, int y)
+        private MapTileElement GetMapTile(int x, int y, int zoom)
         {
-            var u = OsmIndexes.GetTileUri(x, y, Scale);
-            MemoryStream bitmapStream;
-            using (var wc = new WebClient())
-            {
-                bitmapStream = new MemoryStream(wc.DownloadData(u));
-            }
-            var source = new BitmapImage();
-            source.BeginInit();
-            source.StreamSource = bitmapStream;
-            source.EndInit();
-            return new MapTileElement(source, x, y, Scale);
+            var image = TileLoader.GetTile(x, y, zoom);
+            return new MapTileElement(image, x, y, zoom);
         }
 
         private readonly List<MapElement> _elements = new List<MapElement>();
