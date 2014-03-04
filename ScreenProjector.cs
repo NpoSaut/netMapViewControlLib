@@ -9,11 +9,6 @@ namespace MapVisualization
     {
         private static readonly ScreenProjector _defaultProjector = new ScreenProjector();
 
-        public static ScreenProjector DefaultProjector
-        {
-            get { return _defaultProjector; }
-        }
-
         /// <summary>Таблица масштабов</summary>
         /// <remarks>Задаёт масштаб (в метрах на пиксел) для разного уровня масштабирования</remarks>
         private static readonly Dictionary<int, double> Scales =
@@ -38,11 +33,23 @@ namespace MapVisualization
                 { 2, 39135.758482 }
             };
 
+        public static ScreenProjector DefaultProjector
+        {
+            get { return _defaultProjector; }
+        }
+
         public Point Project(EarthPoint p, int Zoom)
         {
             var surfacePoint = (SurfacePoint)p;
             double mpp = Scales[Zoom];
-            return new Point(Math.Round(surfacePoint.X/mpp), Math.Round(-surfacePoint.Y/mpp));
+            return new Point(Math.Round(surfacePoint.X / mpp), Math.Round(-surfacePoint.Y / mpp));
+        }
+
+        public EarthPoint InverseProject(Point Point, int Zoom)
+        {
+            double mpp = Scales[Zoom];
+            var surfacePoint = new SurfacePoint(Point.X * mpp, -Point.Y * mpp);
+            return (EarthPoint)surfacePoint;
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
@@ -35,18 +37,33 @@ namespace MapVisualization
 
             Point topLeftScreenCoordinate = ScreenProjector.DefaultProjector.Project(TopLeftPoint, ZoomLevel);
             _globalTransform = new TranslateTransform(-topLeftScreenCoordinate.X, -topLeftScreenCoordinate.Y);
+        }
 
+        protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
+        {
+            base.OnRenderSizeChanged(sizeInfo);
+            RefreshTiles();
+        }
+
+        private void RefreshTiles()
+        {
             int x0 = OsmIndexes.GetHorizontalIndex(TopLeftPoint.Longitude, ZoomLevel);
             int y0 = OsmIndexes.GetVerticalIndex(TopLeftPoint.Latitude, ZoomLevel);
 
+            int w = (int)Math.Ceiling(this.ActualWidth / 256) + 1;
+            int h = (int)Math.Ceiling(this.ActualHeight / 256) + 1;
+            
             IEnumerable<MapTileElement> tiles =
-                Enumerable.Range(x0, 4)
-                          .SelectMany(x => Enumerable.Range(y0, 4).Select(y => GetMapTile(x, y, ZoomLevel)));
+                Enumerable.Range(x0, w)
+                          .SelectMany(x => Enumerable.Range(y0, h)
+                              .Where(y => !_elements.OfType<MapTileElement>().Any(t => t.HorizontalIndex == x && t.VerticalIndex == y))
+                              .Select(y => GetMapTile(x, y, ZoomLevel)));
             foreach (MapTileElement tile in tiles)
             {
                 AddElement(tile);
             }
         }
+
 
         public ITileLoader TileLoader
         {
@@ -73,12 +90,18 @@ namespace MapVisualization
 
         #region Скроллинг карты
 
-        private void Move(Vector delta) { Move(delta.X, delta.Y); }
-
-        public void Move(double dx, double dy)
+        public void Move(double dx, double dy) { Move(new Vector(dx, dy)); }
+        public void Move(Vector delta)
         {
-            _globalTransform.X += dx;
-            _globalTransform.Y += dy;
+            _globalTransform.X += delta.X;
+            _globalTransform.Y += delta.Y;
+
+            var p0 = ScreenProjector.DefaultProjector.Project(TopLeftPoint, ZoomLevel);
+            var p = p0 - delta;
+
+            TopLeftPoint = ScreenProjector.DefaultProjector.InverseProject(p, ZoomLevel);
+
+            RefreshTiles();
         }
 
         protected override void OnMouseDown(MouseButtonEventArgs e)
