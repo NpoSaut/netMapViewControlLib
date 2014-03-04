@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Net;
+using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -23,7 +24,7 @@ namespace MapVisualization.TileLoaders
         /// <param name="y">Вертикальный индекс</param>
         /// <param name="zoom">Уровень масштабирования</param>
         /// <returns>ImageSource тайла</returns>
-        public ImageSource GetTile(int x, int y, int zoom)
+        public async Task<ImageSource> GetTileAsync(int x, int y, int zoom)
         {
             var tilesDir =
                 new DirectoryInfo(Path.Combine(CachePath, zoom.ToString(CultureInfo.InvariantCulture)));
@@ -34,8 +35,9 @@ namespace MapVisualization.TileLoaders
                 Uri u = OsmIndexes.GetTileUri(x, y, zoom);
                 using (var wc = new WebClient())
                 {
-                    Debug.Print("Downloading Map tile: {0}", u);
-                    wc.DownloadFile(u, tileFile.FullName);
+                    Debug.Print(" # Downloading Map tile: {0}", u);
+                    await wc.DownloadFileTaskAsync(u, tileFile.FullName);
+                    Debug.Print(" # Downloading done");
                 }
             }
             return new BitmapImage(new Uri(tileFile.FullName));

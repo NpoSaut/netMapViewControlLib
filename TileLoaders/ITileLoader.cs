@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using System.Windows.Media;
 
 namespace MapVisualization.TileLoaders
@@ -10,6 +11,6 @@ namespace MapVisualization.TileLoaders
         /// <param name="y">Вертикальный индекс</param>
         /// <param name="zoom">Уровень масштабирования</param>
         /// <returns>ImageSource тайла</returns>
-        ImageSource GetTile(int x, int y, int zoom);
+        Task<ImageSource> GetTileAsync(int x, int y, int zoom);
     }
 }

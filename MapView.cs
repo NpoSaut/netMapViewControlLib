@@ -45,23 +45,28 @@ namespace MapVisualization
             RefreshTiles();
         }
 
-        private void RefreshTiles()
+        private async void RefreshTiles()
         {
             int x0 = OsmIndexes.GetHorizontalIndex(TopLeftPoint.Longitude, ZoomLevel);
             int y0 = OsmIndexes.GetVerticalIndex(TopLeftPoint.Latitude, ZoomLevel);
 
             int w = (int)Math.Ceiling(this.ActualWidth / 256) + 1;
             int h = (int)Math.Ceiling(this.ActualHeight / 256) + 1;
-            
-            IEnumerable<MapTileElement> tiles =
-                Enumerable.Range(x0, w)
-                          .SelectMany(x => Enumerable.Range(y0, h)
-                              .Where(y => !_elements.OfType<MapTileElement>().Any(t => t.HorizontalIndex == x && t.VerticalIndex == y))
-                              .Select(y => GetMapTile(x, y, ZoomLevel)));
-            foreach (MapTileElement tile in tiles)
-            {
-                AddElement(tile);
-            }
+
+            for (int x = x0; x < x0 + w; x++)
+                for (int y = y0; y < y0 + h; y++)
+                {
+                    if (!_elements.OfType<MapTileElement>().Any(t => t.HorizontalIndex == x && t.VerticalIndex == y))
+                    {
+                        var tempTile = new MapStrubTileElement(x, y, ZoomLevel);
+                        Dispatcher.BeginInvoke((Action<MapElement>)AddElement, tempTile);
+
+                        var tileImage = await TileLoader.GetTileAsync(x, y, ZoomLevel);
+                        var tile = new MapImageTileElement(tileImage, x, y, ZoomLevel);
+                        Dispatcher.BeginInvoke((Action<MapElement>)RemoveElement, tempTile);
+                        Dispatcher.BeginInvoke((Action<MapElement>)AddElement, tile);
+                    }
+                }
         }
 
 
@@ -74,11 +79,7 @@ namespace MapVisualization
         public EarthPoint TopLeftPoint { get; set; }
         public int ZoomLevel { get; set; }
 
-        private MapTileElement GetMapTile(int x, int y, int zoom)
-        {
-            ImageSource image = TileLoader.GetTile(x, y, zoom);
-            return new MapTileElement(image, x, y, zoom);
-        }
+        private readonly Dictionary<MapElement, MapVisual> _elementsToVisuals = new Dictionary<MapElement, MapVisual>();
 
         private void AddElement(MapElement Element)
         {
@@ -86,6 +87,14 @@ namespace MapVisualization
             MapVisual visual = Element.GetVisual(ZoomLevel);
             visual.Transform = _globalTransform;
             AddVisual(visual);
+            _elementsToVisuals.Add(Element, visual);
+        }
+
+        private void RemoveElement(MapElement Element)
+        {
+            _elements.Remove(Element);
+            if (_elementsToVisuals.ContainsKey(Element))
+                DeleteVisual(_elementsToVisuals[Element]);
         }
 
         #region Скроллинг карты
