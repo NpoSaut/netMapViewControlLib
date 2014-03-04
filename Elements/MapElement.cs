@@ -53,7 +53,9 @@ namespace MapVisualization.Elements
             var topLeftPoint = OsmIndexes.GetTopLeftPoint(HorizontalIndex, VerticalIndex, RenderZoom);
             var topLeftPointScreenProjection = Projector.Project(topLeftPoint, RenderZoom);
             dc.PushGuidelineSet(ScreenGuidelineSet);
-            dc.DrawImage(TileImage, new Rect(topLeftPointScreenProjection, new Size(TileImage.Width, TileImage.Height)));
+            var tileRect = new Rect(topLeftPointScreenProjection, new Size(TileImage.Width, TileImage.Height));
+            dc.DrawImage(TileImage, tileRect);
+            dc.DrawRectangle(null, new Pen(Brushes.Gray, 2), tileRect);
         }
     }
 }

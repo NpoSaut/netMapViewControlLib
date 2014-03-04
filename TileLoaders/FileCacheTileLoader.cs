@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Net;
@@ -33,6 +34,7 @@ namespace MapVisualization.TileLoaders
                 Uri u = OsmIndexes.GetTileUri(x, y, zoom);
                 using (var wc = new WebClient())
                 {
+                    Debug.Print("Downloading Map tile: {0}", u);
                     wc.DownloadFile(u, tileFile.FullName);
                 }
             }
