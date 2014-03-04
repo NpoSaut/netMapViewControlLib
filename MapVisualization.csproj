@@ -49,6 +49,7 @@
   <ItemGroup>
     <Compile Include="DrawingContainer.cs" />
     <Compile Include="Elements\MapImageTileElement.cs" />
+    <Compile Include="Elements\MapPointElement.cs" />
     <Compile Include="Elements\MapStrubTileElement.cs" />
     <Compile Include="Elements\MapTileElement.cs" />
     <Compile Include="Properties\Annotations.cs" />

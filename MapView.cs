@@ -32,8 +32,8 @@ namespace MapVisualization
 
         public MapView()
         {
-            TopLeftPoint = new EarthPoint(60.5515, 56.8563);
-            ZoomLevel = 13;
+            TopLeftPoint = new EarthPoint(55.5466, 37.4696);
+            ZoomLevel = 14;
 
             Point topLeftScreenCoordinate = ScreenProjector.DefaultProjector.Project(TopLeftPoint, ZoomLevel);
             _globalTransform = new TranslateTransform(-topLeftScreenCoordinate.X, -topLeftScreenCoordinate.Y);
@@ -76,12 +76,12 @@ namespace MapVisualization
             set { SetValue(TileLoaderProperty, value); }
         }
 
-        public EarthPoint TopLeftPoint { get; set; }
+        public EarthPoint TopLeftPoint { get; private set; }
         public int ZoomLevel { get; set; }
 
         private readonly Dictionary<MapElement, MapVisual> _elementsToVisuals = new Dictionary<MapElement, MapVisual>();
 
-        private void AddElement(MapElement Element)
+        public void AddElement(MapElement Element)
         {
             _elements.Add(Element);
             MapVisual visual = Element.GetVisual(ZoomLevel);

@@ -52,9 +52,7 @@ namespace MapVisualization
 
         public static EarthPoint GetTopLeftPoint(int HorizontalIndex, int VerticalIndex, int Zoom)
         {
-            return new EarthPoint(
-                GetLongitude(HorizontalIndex, Zoom),
-                GetLatitude(VerticalIndex, Zoom));
+            return new EarthPoint(GetLatitude(VerticalIndex, Zoom), GetLongitude(HorizontalIndex, Zoom));
         }
     }
 }

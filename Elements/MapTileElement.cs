@@ -24,7 +24,7 @@ namespace MapVisualization.Elements
             dc.PushGuidelineSet(ScreenGuidelineSet);
             var tileRect = new Rect(topLeftPointScreenProjection, new Size(256, 256));
             DrawTile(dc, tileRect);
-            dc.DrawRectangle(null, new Pen(Brushes.Gray, 2), tileRect);
+            //dc.DrawRectangle(null, new Pen(Brushes.Gray, 2), tileRect);
         }
 
         protected abstract void DrawTile(DrawingContext dc, Rect TileRect);
