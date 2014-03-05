@@ -46,18 +46,18 @@ namespace MapVisualization
         {
             base.OnRenderSizeChanged(sizeInfo);
 
-            var delta = new Vector(sizeInfo.NewSize.Width - sizeInfo.PreviousSize.Width, sizeInfo.NewSize.Height - sizeInfo.PreviousSize.Height);
-            var oldScreenCentralPoint = Projector.Project(CentralPoint, ZoomLevel);
-            var newScreenCentralPoint = oldScreenCentralPoint + 0.5 * delta;
+            var delta = new Vector(sizeInfo.NewSize.Width - sizeInfo.PreviousSize.Width,
+                                   sizeInfo.NewSize.Height - sizeInfo.PreviousSize.Height);
+            Point oldScreenCentralPoint = Projector.Project(CentralPoint, ZoomLevel);
+            Point newScreenCentralPoint = oldScreenCentralPoint + 0.5 * delta;
 
             CentralPoint = Projector.InverseProject(newScreenCentralPoint, ZoomLevel);
-            RefreshTiles();
         }
 
         private async void RefreshTiles()
         {
-            int x0 = OsmIndexes.GetHorizontalIndex(MostWesternLongitude, ZoomLevel);
-            int y0 = OsmIndexes.GetVerticalIndex(MostNorthenLatitude, ZoomLevel);
+            int x0 = OsmIndexes.GetHorizontalIndex(VisibleArea.MostWesternLongitude, ZoomLevel);
+            int y0 = OsmIndexes.GetVerticalIndex(VisibleArea.MostNorthenLatitude, ZoomLevel);
 
             int w = (int)Math.Ceiling(ActualWidth / 256) + 1;
             int h = (int)Math.Ceiling(ActualHeight / 256) + 1;
@@ -65,35 +65,73 @@ namespace MapVisualization
             for (int x = x0; x < x0 + w; x++)
                 for (int y = y0; y < y0 + h; y++)
                 {
-                    if (!_elements.OfType<MapTileElement>().Any(t => t.HorizontalIndex == x && t.VerticalIndex == y))
+                    if (!_tiles.Any(t => t.HorizontalIndex == x && t.VerticalIndex == y))
                     {
                         var tempTile = new MapStrubTileElement(x, y, ZoomLevel);
-                        Dispatcher.BeginInvoke((Action<MapElement>)AddElement, tempTile);
+                        Dispatcher.BeginInvoke((Action<MapTileElement>)AddTile, tempTile);
 
                         try
                         {
                             ImageSource tileImage = await TileLoader.GetTileAsync(x, y, ZoomLevel);
                             var tile = new MapImageTileElement(tileImage, x, y, ZoomLevel);
-                            Dispatcher.BeginInvoke((Action<MapElement>)RemoveElement, tempTile);
-                            Dispatcher.BeginInvoke((Action<MapElement>)AddElement, tile);
+                            Dispatcher.BeginInvoke((Action<MapTileElement>)RemoveTile, tempTile);
+                            Dispatcher.BeginInvoke((Action<MapTileElement>)AddTile, tile);
                         }
                         catch (Exception) { }
                     }
                 }
         }
 
+        private void RefreshObjectsVisuals()
+        {
+            foreach (var elementToVisual in _elementsToVisuals.ToList())
+            {
+                if (!elementToVisual.Key.TestVisual(VisibleArea))
+                {
+                    DeleteVisual(elementToVisual.Value);
+                    _elementsToVisuals.Remove(elementToVisual.Key);
+                }
+            }
+
+            foreach (var element in _elements.Except(_elementsToVisuals.Keys).Where(e => e.TestVisual(VisibleArea)))
+            {
+                MapVisual visual = element.GetVisual(ZoomLevel);
+                visual.Transform = _globalTransform;
+                AddVisual(visual);
+                _elementsToVisuals.Add(element, visual);
+            }
+        }
+
         #region Работа со списком элементов
 
+        private readonly List<MapTileElement> _tiles = new List<MapTileElement>();
         private readonly List<MapElement> _elements = new List<MapElement>();
+        private readonly Dictionary<MapTileElement, MapVisual> _tilesToVisuals = new Dictionary<MapTileElement, MapVisual>();
         private readonly Dictionary<MapElement, MapVisual> _elementsToVisuals = new Dictionary<MapElement, MapVisual>();
+
+
+        public void AddTile(MapTileElement Tile)
+        {
+            _tiles.Add(Tile);
+            MapVisual visual = Tile.GetVisual(ZoomLevel);
+            visual.Transform = _globalTransform;
+            AddVisual(visual);
+            _tilesToVisuals.Add(Tile, visual);
+        }
+
+        private void RemoveTile(MapTileElement Tile)
+        {
+            _tiles.Remove(Tile);
+            if (_tilesToVisuals.ContainsKey(Tile))
+            {
+                DeleteVisual(_tilesToVisuals[Tile]);
+                _tilesToVisuals.Remove(Tile);
+            }
+        }
 
         public void AddElement(MapElement Element)
         {
             _elements.Add(Element);
-            MapVisual visual = Element.GetVisual(ZoomLevel);
-            visual.Transform = _globalTransform;
-            AddVisual(visual);
-            _elementsToVisuals.Add(Element, visual);
         }
 
         private void RemoveElement(MapElement Element)
@@ -130,70 +168,19 @@ namespace MapVisualization
 
         #endregion
 
-        #region MostWesternLongitude DependencyProperty
+        #region VisibleArea DependencyProperty
 
-        public static readonly DependencyPropertyKey MostWesternLongitudePropertyKey = DependencyProperty
-            .RegisterReadOnly("MostWesternLongitude", typeof (Degree), typeof (MapView),
-                              new PropertyMetadata(default(Degree)));
+        public static readonly DependencyPropertyKey VisibleAreaPropertyKey = DependencyProperty
+            .RegisterReadOnly("VisibleArea", typeof (EarthArea), typeof (MapView),
+                              new PropertyMetadata(default(EarthArea)));
 
-        public static readonly DependencyProperty MostWesternLongitudeProperty =
-            MostWesternLongitudePropertyKey.DependencyProperty;
+        public static readonly DependencyProperty VisibleAreaProperty =
+            VisibleAreaPropertyKey.DependencyProperty;
 
-        public Degree MostWesternLongitude
+        public EarthArea VisibleArea
         {
-            get { return (Degree)GetValue(MostWesternLongitudeProperty); }
-            protected set { SetValue(MostWesternLongitudePropertyKey, value); }
-        }
-
-        #endregion
-
-        #region MostEasternLongitude DependencyProperty
-
-        public static readonly DependencyPropertyKey MostEasternLongitudePropertyKey = DependencyProperty
-            .RegisterReadOnly("MostEasternLongitude", typeof (Degree), typeof (MapView),
-                              new PropertyMetadata(default(Degree)));
-
-        public static readonly DependencyProperty MostEasternLongitudeProperty =
-            MostEasternLongitudePropertyKey.DependencyProperty;
-
-        public Degree MostEasternLongitude
-        {
-            get { return (Degree)GetValue(MostEasternLongitudeProperty); }
-            protected set { SetValue(MostEasternLongitudePropertyKey, value); }
-        }
-
-        #endregion
-
-        #region MostNorthenLatitude DependencyProperty
-
-        public static readonly DependencyPropertyKey MostNorthenLatitudePropertyKey = DependencyProperty
-            .RegisterReadOnly("MostNorthenLatitude", typeof (Degree), typeof (MapView),
-                              new PropertyMetadata(default(Degree)));
-
-        public static readonly DependencyProperty MostNorthenLatitudeProperty =
-            MostNorthenLatitudePropertyKey.DependencyProperty;
-
-        public Degree MostNorthenLatitude
-        {
-            get { return (Degree)GetValue(MostNorthenLatitudeProperty); }
-            protected set { SetValue(MostNorthenLatitudePropertyKey, value); }
-        }
-
-        #endregion
-
-        #region MostSouthernLatitude DependencyProperty
-
-        public static readonly DependencyPropertyKey MostSouthernLatitudePropertyKey = DependencyProperty
-            .RegisterReadOnly("MostSouthernLatitude", typeof (Degree), typeof (MapView),
-                              new PropertyMetadata(default(Degree)));
-
-        public static readonly DependencyProperty MostSouthernLatitudeProperty =
-            MostSouthernLatitudePropertyKey.DependencyProperty;
-
-        public Degree MostSouthernLatitude
-        {
-            get { return (Degree)GetValue(MostSouthernLatitudeProperty); }
-            protected set { SetValue(MostSouthernLatitudePropertyKey, value); }
+            get { return (EarthArea)GetValue(VisibleAreaProperty); }
+            protected set { SetValue(VisibleAreaPropertyKey, value); }
         }
 
         #endregion
@@ -208,19 +195,19 @@ namespace MapVisualization
             _globalTransform.X = Math.Round(-screenCentralPoint.X + ActualWidth / 2);
             _globalTransform.Y = Math.Round(-screenCentralPoint.Y + ActualHeight / 2);
 
-            EarthPoint topLeft =
-                Projector.InverseProject(screenCentralPoint + new Vector(-ActualWidth / 2, -ActualHeight / 2), ZoomLevel);
-            EarthPoint bottomLeft =
-                Projector.InverseProject(screenCentralPoint + new Vector(-ActualWidth / 2, +ActualHeight / 2), ZoomLevel);
-            EarthPoint topRight =
-                Projector.InverseProject(screenCentralPoint + new Vector(+ActualWidth / 2, -ActualHeight / 2), ZoomLevel);
-            EarthPoint bottomRight =
-                Projector.InverseProject(screenCentralPoint + new Vector(+ActualWidth / 2, +ActualHeight / 2), ZoomLevel);
+            VisibleArea = new EarthArea(
+                // Top Left
+                Projector.InverseProject(screenCentralPoint + new Vector(-ActualWidth / 2, -ActualHeight / 2), ZoomLevel),
+                // Bottom Left
+                Projector.InverseProject(screenCentralPoint + new Vector(-ActualWidth / 2, +ActualHeight / 2), ZoomLevel),
+                // Top Right
+                Projector.InverseProject(screenCentralPoint + new Vector(+ActualWidth / 2, -ActualHeight / 2), ZoomLevel),
+                // BottomRight
+                Projector.InverseProject(screenCentralPoint + new Vector(+ActualWidth / 2, +ActualHeight / 2), ZoomLevel)
+                );
 
-            MostWesternLongitude = new Degree(Math.Min(topLeft.Longitude.Value, bottomLeft.Longitude.Value));
-            MostEasternLongitude = new Degree(Math.Max(topRight.Longitude.Value, bottomRight.Longitude.Value));
-            MostNorthenLatitude = new Degree(Math.Max(topLeft.Latitude.Value, topRight.Latitude.Value));
-            MostSouthernLatitude = new Degree(Math.Min(bottomLeft.Latitude.Value, bottomRight.Latitude.Value));
+            RefreshTiles();
+            RefreshObjectsVisuals();
         }
 
         public void Move(double dx, double dy) { Move(new Vector(dx, dy)); }
@@ -230,8 +217,6 @@ namespace MapVisualization
             Point p0 = ScreenProjector.DefaultProjector.Project(CentralPoint, ZoomLevel);
             Point p = p0 - delta;
             CentralPoint = ScreenProjector.DefaultProjector.InverseProject(p, ZoomLevel);
-
-            RefreshTiles();
         }
 
         protected override void OnMouseDown(MouseButtonEventArgs e)

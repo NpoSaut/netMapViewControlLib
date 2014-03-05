@@ -17,5 +17,7 @@ namespace MapVisualization.Elements
             DrawPointElement(dc);
             dc.Pop();
         }
+
+        public override bool TestVisual(EarthArea VisibleArea) { return Position.IsInArea(VisibleArea); }
     }
 }

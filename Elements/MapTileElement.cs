@@ -28,5 +28,7 @@ namespace MapVisualization.Elements
         }
 
         protected abstract void DrawTile(DrawingContext dc, Rect TileRect);
+
+        public override bool TestVisual(EarthArea VisibleArea) { return true; }
     }
 }

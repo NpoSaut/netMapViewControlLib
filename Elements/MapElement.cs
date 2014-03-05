@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using System.Windows.Media;
+using Geographics;
 
 namespace MapVisualization.Elements
 {
@@ -30,5 +31,7 @@ namespace MapVisualization.Elements
             }
             return res;
         }
+
+        public abstract bool TestVisual(EarthArea VisibleArea);
     }
 }
