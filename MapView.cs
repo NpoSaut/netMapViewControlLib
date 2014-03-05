@@ -32,8 +32,9 @@ namespace MapVisualization
 
         public MapView()
         {
-            TopLeftPoint = new EarthPoint(55.5466, 37.4696);
-            ZoomLevel = 14;
+            //TopLeftPoint = new EarthPoint(55.5466, 37.4696);
+            TopLeftPoint = new EarthPoint(56.8302, 60.4928);
+            ZoomLevel = 13;
 
             Point topLeftScreenCoordinate = ScreenProjector.DefaultProjector.Project(TopLeftPoint, ZoomLevel);
             _globalTransform = new TranslateTransform(-topLeftScreenCoordinate.X, -topLeftScreenCoordinate.Y);
