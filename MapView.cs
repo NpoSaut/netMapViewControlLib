@@ -178,7 +178,15 @@ namespace MapVisualization
 
         public static readonly DependencyPropertyKey VisibleAreaPropertyKey = DependencyProperty
             .RegisterReadOnly("VisibleArea", typeof (EarthArea), typeof (MapView),
-                              new PropertyMetadata(default(EarthArea)));
+                              new PropertyMetadata(default(EarthArea), VisibleAreaPropertyChangedCallback));
+
+        private static void VisibleAreaPropertyChangedCallback(DependencyObject Obj,
+                                                               DependencyPropertyChangedEventArgs e)
+        {
+            var map = (MapView)Obj;
+            var newVisibleArea = (EarthArea)e.NewValue;
+            map.OnVisibleAreaChanged(newVisibleArea);
+        }
 
         public static readonly DependencyProperty VisibleAreaProperty =
             VisibleAreaPropertyKey.DependencyProperty;
@@ -195,7 +203,7 @@ namespace MapVisualization
         private Point? _dragStartPoint;
         public int ZoomLevel { get; set; }
 
-        private void OnCentralPointChanged(EarthPoint newCentralPoint)
+        protected virtual void OnCentralPointChanged(EarthPoint newCentralPoint)
         {
             Point screenCentralPoint = Projector.Project(newCentralPoint, ZoomLevel);
             _globalTransform.X = Math.Round(-screenCentralPoint.X + ActualWidth / 2);
@@ -213,6 +221,10 @@ namespace MapVisualization
                 );
 
             RefreshTiles();
+        }
+
+        protected virtual void OnVisibleAreaChanged(EarthArea NewVisibleArea)
+        {
             RefreshObjectsVisuals();
         }
 
