@@ -20,7 +20,6 @@ namespace MapVisualization
                                                                                                        AppDataFileCacheTileLoader
                                                                                                            .DefaultLoader));
 
-
         static MapView()
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof (MapView), new FrameworkPropertyMetadata(typeof (MapView)));
@@ -28,13 +27,14 @@ namespace MapVisualization
 
         public MapView()
         {
-            //TopLeftPoint = new EarthPoint(55.5466, 37.4696);
-            TopLeftPoint = new EarthPoint(56.8302, 60.4928);
+            Projector = ScreenProjector.DefaultProjector;
             ZoomLevel = 13;
 
-            Point topLeftScreenCoordinate = ScreenProjector.DefaultProjector.Project(TopLeftPoint, ZoomLevel);
+            Point topLeftScreenCoordinate = ScreenProjector.DefaultProjector.Project(CentralPoint, ZoomLevel);
             _globalTransform = new TranslateTransform(-topLeftScreenCoordinate.X, -topLeftScreenCoordinate.Y);
         }
+
+        public ScreenProjector Projector { get; private set; }
 
         public ITileLoader TileLoader
         {
@@ -42,17 +42,22 @@ namespace MapVisualization
             set { SetValue(TileLoaderProperty, value); }
         }
 
-
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
         {
             base.OnRenderSizeChanged(sizeInfo);
+
+            var delta = new Vector(sizeInfo.NewSize.Width - sizeInfo.PreviousSize.Width, sizeInfo.NewSize.Height - sizeInfo.PreviousSize.Height);
+            var oldScreenCentralPoint = Projector.Project(CentralPoint, ZoomLevel);
+            var newScreenCentralPoint = oldScreenCentralPoint + 0.5 * delta;
+
+            CentralPoint = Projector.InverseProject(newScreenCentralPoint, ZoomLevel);
             RefreshTiles();
         }
 
         private async void RefreshTiles()
         {
-            int x0 = OsmIndexes.GetHorizontalIndex(TopLeftPoint.Longitude, ZoomLevel);
-            int y0 = OsmIndexes.GetVerticalIndex(TopLeftPoint.Latitude, ZoomLevel);
+            int x0 = OsmIndexes.GetHorizontalIndex(MostWesternLongitude, ZoomLevel);
+            int y0 = OsmIndexes.GetVerticalIndex(MostNorthenLatitude, ZoomLevel);
 
             int w = (int)Math.Ceiling(ActualWidth / 256) + 1;
             int h = (int)Math.Ceiling(ActualHeight / 256) + 1;
@@ -65,10 +70,14 @@ namespace MapVisualization
                         var tempTile = new MapStrubTileElement(x, y, ZoomLevel);
                         Dispatcher.BeginInvoke((Action<MapElement>)AddElement, tempTile);
 
-                        ImageSource tileImage = await TileLoader.GetTileAsync(x, y, ZoomLevel);
-                        var tile = new MapImageTileElement(tileImage, x, y, ZoomLevel);
-                        Dispatcher.BeginInvoke((Action<MapElement>)RemoveElement, tempTile);
-                        Dispatcher.BeginInvoke((Action<MapElement>)AddElement, tile);
+                        try
+                        {
+                            ImageSource tileImage = await TileLoader.GetTileAsync(x, y, ZoomLevel);
+                            var tile = new MapImageTileElement(tileImage, x, y, ZoomLevel);
+                            Dispatcher.BeginInvoke((Action<MapElement>)RemoveElement, tempTile);
+                            Dispatcher.BeginInvoke((Action<MapElement>)AddElement, tile);
+                        }
+                        catch (Exception) { }
                     }
                 }
         }
@@ -96,25 +105,131 @@ namespace MapVisualization
 
         #endregion
 
-
         #region Скроллинг и позиционирование карты
 
-        public EarthPoint TopLeftPoint { get; private set; }
-        public int ZoomLevel { get; set; }
+        #region CentralPoint DependencyProperty
+
+        public static readonly DependencyProperty CentralPointProperty =
+            DependencyProperty.Register("CentralPoint", typeof (EarthPoint), typeof (MapView),
+                                        new PropertyMetadata(new EarthPoint(56.8302, 60.4928),
+                                                             CentralPointPropertyChangedCallback));
+
+        public EarthPoint CentralPoint
+        {
+            get { return (EarthPoint)GetValue(CentralPointProperty); }
+            set { SetValue(CentralPointProperty, value); }
+        }
+
+        private static void CentralPointPropertyChangedCallback(DependencyObject Obj,
+                                                                DependencyPropertyChangedEventArgs e)
+        {
+            var newPoint = (EarthPoint)e.NewValue;
+            var map = (MapView)Obj;
+            map.OnCentralPointChanged(newPoint);
+        }
+
+        #endregion
+
+        #region MostWesternLongitude DependencyProperty
+
+        public static readonly DependencyPropertyKey MostWesternLongitudePropertyKey = DependencyProperty
+            .RegisterReadOnly("MostWesternLongitude", typeof (Degree), typeof (MapView),
+                              new PropertyMetadata(default(Degree)));
+
+        public static readonly DependencyProperty MostWesternLongitudeProperty =
+            MostWesternLongitudePropertyKey.DependencyProperty;
+
+        public Degree MostWesternLongitude
+        {
+            get { return (Degree)GetValue(MostWesternLongitudeProperty); }
+            protected set { SetValue(MostWesternLongitudePropertyKey, value); }
+        }
+
+        #endregion
+
+        #region MostEasternLongitude DependencyProperty
+
+        public static readonly DependencyPropertyKey MostEasternLongitudePropertyKey = DependencyProperty
+            .RegisterReadOnly("MostEasternLongitude", typeof (Degree), typeof (MapView),
+                              new PropertyMetadata(default(Degree)));
+
+        public static readonly DependencyProperty MostEasternLongitudeProperty =
+            MostEasternLongitudePropertyKey.DependencyProperty;
+
+        public Degree MostEasternLongitude
+        {
+            get { return (Degree)GetValue(MostEasternLongitudeProperty); }
+            protected set { SetValue(MostEasternLongitudePropertyKey, value); }
+        }
+
+        #endregion
+
+        #region MostNorthenLatitude DependencyProperty
+
+        public static readonly DependencyPropertyKey MostNorthenLatitudePropertyKey = DependencyProperty
+            .RegisterReadOnly("MostNorthenLatitude", typeof (Degree), typeof (MapView),
+                              new PropertyMetadata(default(Degree)));
+
+        public static readonly DependencyProperty MostNorthenLatitudeProperty =
+            MostNorthenLatitudePropertyKey.DependencyProperty;
+
+        public Degree MostNorthenLatitude
+        {
+            get { return (Degree)GetValue(MostNorthenLatitudeProperty); }
+            protected set { SetValue(MostNorthenLatitudePropertyKey, value); }
+        }
+
+        #endregion
+
+        #region MostSouthernLatitude DependencyProperty
+
+        public static readonly DependencyPropertyKey MostSouthernLatitudePropertyKey = DependencyProperty
+            .RegisterReadOnly("MostSouthernLatitude", typeof (Degree), typeof (MapView),
+                              new PropertyMetadata(default(Degree)));
+
+        public static readonly DependencyProperty MostSouthernLatitudeProperty =
+            MostSouthernLatitudePropertyKey.DependencyProperty;
+
+        public Degree MostSouthernLatitude
+        {
+            get { return (Degree)GetValue(MostSouthernLatitudeProperty); }
+            protected set { SetValue(MostSouthernLatitudePropertyKey, value); }
+        }
+
+        #endregion
 
         private readonly TranslateTransform _globalTransform;
         private Point? _dragStartPoint;
+        public int ZoomLevel { get; set; }
+
+        private void OnCentralPointChanged(EarthPoint newCentralPoint)
+        {
+            Point screenCentralPoint = Projector.Project(newCentralPoint, ZoomLevel);
+            _globalTransform.X = Math.Round(-screenCentralPoint.X + ActualWidth / 2);
+            _globalTransform.Y = Math.Round(-screenCentralPoint.Y + ActualHeight / 2);
+
+            EarthPoint topLeft =
+                Projector.InverseProject(screenCentralPoint + new Vector(-ActualWidth / 2, -ActualHeight / 2), ZoomLevel);
+            EarthPoint bottomLeft =
+                Projector.InverseProject(screenCentralPoint + new Vector(-ActualWidth / 2, +ActualHeight / 2), ZoomLevel);
+            EarthPoint topRight =
+                Projector.InverseProject(screenCentralPoint + new Vector(+ActualWidth / 2, -ActualHeight / 2), ZoomLevel);
+            EarthPoint bottomRight =
+                Projector.InverseProject(screenCentralPoint + new Vector(+ActualWidth / 2, +ActualHeight / 2), ZoomLevel);
+
+            MostWesternLongitude = new Degree(Math.Min(topLeft.Longitude.Value, bottomLeft.Longitude.Value));
+            MostEasternLongitude = new Degree(Math.Max(topRight.Longitude.Value, bottomRight.Longitude.Value));
+            MostNorthenLatitude = new Degree(Math.Max(topLeft.Latitude.Value, topRight.Latitude.Value));
+            MostSouthernLatitude = new Degree(Math.Min(bottomLeft.Latitude.Value, bottomRight.Latitude.Value));
+        }
 
         public void Move(double dx, double dy) { Move(new Vector(dx, dy)); }
+
         public void Move(Vector delta)
         {
-            _globalTransform.X += delta.X;
-            _globalTransform.Y += delta.Y;
-
-            Point p0 = ScreenProjector.DefaultProjector.Project(TopLeftPoint, ZoomLevel);
+            Point p0 = ScreenProjector.DefaultProjector.Project(CentralPoint, ZoomLevel);
             Point p = p0 - delta;
-
-            TopLeftPoint = ScreenProjector.DefaultProjector.InverseProject(p, ZoomLevel);
+            CentralPoint = ScreenProjector.DefaultProjector.InverseProject(p, ZoomLevel);
 
             RefreshTiles();
         }
