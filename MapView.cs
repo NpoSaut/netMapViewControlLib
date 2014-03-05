@@ -93,7 +93,13 @@ namespace MapVisualization
                 }
             }
 
-            foreach (var element in _elements.Except(_elementsToVisuals.Keys).Where(e => e.TestVisual(VisibleArea)))
+            var vArea = VisibleArea;
+            foreach (
+                var element in
+                    _elements.Except(_elementsToVisuals.Keys)
+                             .AsParallel()
+                             .Where(e => !_elementsToVisuals.ContainsKey(e) && e.TestVisual(vArea))
+                             .ToList())
             {
                 MapVisual visual = element.GetVisual(ZoomLevel);
                 visual.Transform = _globalTransform;
