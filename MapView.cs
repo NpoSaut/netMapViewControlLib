@@ -153,7 +153,7 @@ namespace MapVisualization
             _elements.Add(Element);
         }
 
-        private void RemoveElement(MapElement Element)
+        public void RemoveElement(MapElement Element)
         {
             _elements.Remove(Element);
             if (_elementsToVisuals.ContainsKey(Element))

@@ -4,6 +4,7 @@ using Geographics;
 
 namespace MapVisualization.Elements
 {
+    /// <summary>Элемент карты</summary>
     public abstract class MapElement
     {
         protected static GuidelineSet ScreenGuidelineSet;
@@ -15,13 +16,20 @@ namespace MapVisualization.Elements
                 Enumerable.Range(0, 40000).Select(y => (double)y).ToArray());
         }
 
+        /// <summary>Проектор географических координат в экранные</summary>
         protected ScreenProjector Projector
         {
             get { return ScreenProjector.DefaultProjector; }
         }
 
+        /// <summary>Отрисовывает объект в указанном контексте рисования</summary>
+        /// <param name="dc">Контекст рисования</param>
+        /// <param name="Zoom">Индекс масштаба рисования</param>
         protected abstract void Draw(DrawingContext dc, int Zoom);
 
+        /// <summary>Получает визуальный элемент для этого элемента карты</summary>
+        /// <param name="Zoom">Индекс масштаба отображения</param>
+        /// <returns></returns>
         public MapVisual GetVisual(int Zoom)
         {
             var res = new MapVisual();
@@ -32,6 +40,9 @@ namespace MapVisualization.Elements
             return res;
         }
 
+        /// <summary>Проверяет, попадает ли этот элемент в указанную области видимости</summary>
+        /// <param name="VisibleArea">Область видимости</param>
+        /// <returns>True, если объект может оказаться виден в указанной области</returns>
         public abstract bool TestVisual(EarthArea VisibleArea);
     }
 }
