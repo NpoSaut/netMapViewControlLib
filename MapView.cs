@@ -93,9 +93,9 @@ namespace MapVisualization
                 }
             }
 
-            var vArea = VisibleArea;
+            EarthArea vArea = VisibleArea;
             foreach (
-                var element in
+                MapElement element in
                     _elements.Except(_elementsToVisuals.Keys)
                              .AsParallel()
                              .Where(e => !_elementsToVisuals.ContainsKey(e) && e.TestVisual(vArea))
@@ -108,13 +108,26 @@ namespace MapVisualization
             }
         }
 
+        /// <summary>Получает координаты точки, соответствующей точке с заданными экранными координатами</summary>
+        /// <param name="screenPoint">Координаты точки относительно элемента управления карты</param>
+        /// <returns>Координаты точки на поверхности Земли, соответствующие точке на карте</returns>
+        public EarthPoint PointAt(Point screenPoint)
+        {
+            Point globalScreenCenter = Projector.Project(CentralPoint, ZoomLevel);
+            Point globalScreenPoint = globalScreenCenter + (Vector)screenPoint
+                                      - new Vector(ActualWidth / 2, ActualHeight / 2);
+            return Projector.InverseProject(globalScreenPoint, ZoomLevel);
+        }
+
         #region Работа со списком элементов
 
-        private readonly List<MapTileElement> _tiles = new List<MapTileElement>();
         private readonly List<MapElement> _elements = new List<MapElement>();
-        private readonly Dictionary<MapTileElement, MapVisual> _tilesToVisuals = new Dictionary<MapTileElement, MapVisual>();
-        private readonly Dictionary<MapElement, MapVisual> _elementsToVisuals = new Dictionary<MapElement, MapVisual>();
 
+        private readonly Dictionary<MapElement, MapVisual> _elementsToVisuals = new Dictionary<MapElement, MapVisual>();
+        private readonly List<MapTileElement> _tiles = new List<MapTileElement>();
+
+        private readonly Dictionary<MapTileElement, MapVisual> _tilesToVisuals =
+            new Dictionary<MapTileElement, MapVisual>();
 
         public void AddTile(MapTileElement Tile)
         {
@@ -145,6 +158,37 @@ namespace MapVisualization
             _elements.Remove(Element);
             if (_elementsToVisuals.ContainsKey(Element))
                 DeleteVisual(_elementsToVisuals[Element]);
+        }
+
+        #endregion
+
+        #region События кликов мыши
+
+        /// <summary>Нажатие кнопки мыши над картой</summary>
+        public event EventHandler<GeographicEventArgs> GeographicMouseDown;
+
+        /// <summary>Отпускание кнопки мыши над картой</summary>
+        public event EventHandler<GeographicEventArgs> GeographicMouseUp;
+
+        /// <summary>Щелчок мышью над картой</summary>
+        public event EventHandler<GeographicEventArgs> GeographicMouseClick;
+
+        protected virtual void OnGeographicMouseDown(GeographicEventArgs E)
+        {
+            EventHandler<GeographicEventArgs> handler = GeographicMouseDown;
+            if (handler != null) handler(this, E);
+        }
+
+        protected virtual void OnGeographicMouseUp(GeographicEventArgs E)
+        {
+            EventHandler<GeographicEventArgs> handler = GeographicMouseUp;
+            if (handler != null) handler(this, E);
+        }
+
+        protected virtual void OnGeographicMouseClick(GeographicEventArgs E)
+        {
+            EventHandler<GeographicEventArgs> handler = GeographicMouseClick;
+            if (handler != null) handler(this, E);
         }
 
         #endregion
@@ -180,14 +224,6 @@ namespace MapVisualization
             .RegisterReadOnly("VisibleArea", typeof (EarthArea), typeof (MapView),
                               new PropertyMetadata(default(EarthArea), VisibleAreaPropertyChangedCallback));
 
-        private static void VisibleAreaPropertyChangedCallback(DependencyObject Obj,
-                                                               DependencyPropertyChangedEventArgs e)
-        {
-            var map = (MapView)Obj;
-            var newVisibleArea = (EarthArea)e.NewValue;
-            map.OnVisibleAreaChanged(newVisibleArea);
-        }
-
         public static readonly DependencyProperty VisibleAreaProperty =
             VisibleAreaPropertyKey.DependencyProperty;
 
@@ -197,10 +233,19 @@ namespace MapVisualization
             protected set { SetValue(VisibleAreaPropertyKey, value); }
         }
 
+        private static void VisibleAreaPropertyChangedCallback(DependencyObject Obj,
+                                                               DependencyPropertyChangedEventArgs e)
+        {
+            var map = (MapView)Obj;
+            var newVisibleArea = (EarthArea)e.NewValue;
+            map.OnVisibleAreaChanged(newVisibleArea);
+        }
+
         #endregion
 
         private readonly TranslateTransform _globalTransform;
         private Point? _dragStartPoint;
+        private bool _isMapWasMovedLastTime;
         public int ZoomLevel { get; set; }
 
         protected virtual void OnCentralPointChanged(EarthPoint newCentralPoint)
@@ -223,12 +268,7 @@ namespace MapVisualization
             RefreshTiles();
         }
 
-        protected virtual void OnVisibleAreaChanged(EarthArea NewVisibleArea)
-        {
-            RefreshObjectsVisuals();
-        }
-
-        public void Move(double dx, double dy) { Move(new Vector(dx, dy)); }
+        protected virtual void OnVisibleAreaChanged(EarthArea NewVisibleArea) { RefreshObjectsVisuals(); }
 
         public void Move(Vector delta)
         {
@@ -240,7 +280,19 @@ namespace MapVisualization
         protected override void OnMouseDown(MouseButtonEventArgs e)
         {
             _dragStartPoint = e.GetPosition(this);
+            _isMapWasMovedLastTime = false;
             base.OnMouseDown(e);
+
+            OnGeographicMouseDown(new GeographicEventArgs(PointAt(_dragStartPoint.Value)));
+        }
+
+        protected override void OnMouseUp(MouseButtonEventArgs e)
+        {
+            base.OnMouseUp(e);
+
+            EarthPoint upPoint = PointAt(e.GetPosition(this));
+            OnGeographicMouseDown(new GeographicEventArgs(upPoint));
+            if (!_isMapWasMovedLastTime) OnGeographicMouseClick(new GeographicEventArgs(upPoint));
         }
 
         protected override void OnMouseMove(MouseEventArgs e)
@@ -250,10 +302,17 @@ namespace MapVisualization
                 Point dragCurrentPoint = e.GetPosition(this);
                 if (_dragStartPoint != null) Move(dragCurrentPoint - _dragStartPoint.Value);
                 _dragStartPoint = dragCurrentPoint;
+                _isMapWasMovedLastTime = true;
             }
             base.OnMouseMove(e);
         }
 
         #endregion
+    }
+
+    public class GeographicEventArgs : EventArgs
+    {
+        public GeographicEventArgs(EarthPoint Point) { this.Point = Point; }
+        public EarthPoint Point { get; private set; }
     }
 }
