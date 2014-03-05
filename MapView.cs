@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
@@ -21,9 +20,6 @@ namespace MapVisualization
                                                                                                        AppDataFileCacheTileLoader
                                                                                                            .DefaultLoader));
 
-        private readonly List<MapElement> _elements = new List<MapElement>();
-        private readonly TranslateTransform _globalTransform;
-        private Point? _dragStartPoint;
 
         static MapView()
         {
@@ -40,6 +36,13 @@ namespace MapVisualization
             _globalTransform = new TranslateTransform(-topLeftScreenCoordinate.X, -topLeftScreenCoordinate.Y);
         }
 
+        public ITileLoader TileLoader
+        {
+            get { return (ITileLoader)GetValue(TileLoaderProperty); }
+            set { SetValue(TileLoaderProperty, value); }
+        }
+
+
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
         {
             base.OnRenderSizeChanged(sizeInfo);
@@ -51,8 +54,8 @@ namespace MapVisualization
             int x0 = OsmIndexes.GetHorizontalIndex(TopLeftPoint.Longitude, ZoomLevel);
             int y0 = OsmIndexes.GetVerticalIndex(TopLeftPoint.Latitude, ZoomLevel);
 
-            int w = (int)Math.Ceiling(this.ActualWidth / 256) + 1;
-            int h = (int)Math.Ceiling(this.ActualHeight / 256) + 1;
+            int w = (int)Math.Ceiling(ActualWidth / 256) + 1;
+            int h = (int)Math.Ceiling(ActualHeight / 256) + 1;
 
             for (int x = x0; x < x0 + w; x++)
                 for (int y = y0; y < y0 + h; y++)
@@ -62,7 +65,7 @@ namespace MapVisualization
                         var tempTile = new MapStrubTileElement(x, y, ZoomLevel);
                         Dispatcher.BeginInvoke((Action<MapElement>)AddElement, tempTile);
 
-                        var tileImage = await TileLoader.GetTileAsync(x, y, ZoomLevel);
+                        ImageSource tileImage = await TileLoader.GetTileAsync(x, y, ZoomLevel);
                         var tile = new MapImageTileElement(tileImage, x, y, ZoomLevel);
                         Dispatcher.BeginInvoke((Action<MapElement>)RemoveElement, tempTile);
                         Dispatcher.BeginInvoke((Action<MapElement>)AddElement, tile);
@@ -70,16 +73,9 @@ namespace MapVisualization
                 }
         }
 
+        #region Работа со списком элементов
 
-        public ITileLoader TileLoader
-        {
-            get { return (ITileLoader)GetValue(TileLoaderProperty); }
-            set { SetValue(TileLoaderProperty, value); }
-        }
-
-        public EarthPoint TopLeftPoint { get; private set; }
-        public int ZoomLevel { get; set; }
-
+        private readonly List<MapElement> _elements = new List<MapElement>();
         private readonly Dictionary<MapElement, MapVisual> _elementsToVisuals = new Dictionary<MapElement, MapVisual>();
 
         public void AddElement(MapElement Element)
@@ -98,7 +94,16 @@ namespace MapVisualization
                 DeleteVisual(_elementsToVisuals[Element]);
         }
 
-        #region Скроллинг карты
+        #endregion
+
+
+        #region Скроллинг и позиционирование карты
+
+        public EarthPoint TopLeftPoint { get; private set; }
+        public int ZoomLevel { get; set; }
+
+        private readonly TranslateTransform _globalTransform;
+        private Point? _dragStartPoint;
 
         public void Move(double dx, double dy) { Move(new Vector(dx, dy)); }
         public void Move(Vector delta)
@@ -106,8 +111,8 @@ namespace MapVisualization
             _globalTransform.X += delta.X;
             _globalTransform.Y += delta.Y;
 
-            var p0 = ScreenProjector.DefaultProjector.Project(TopLeftPoint, ZoomLevel);
-            var p = p0 - delta;
+            Point p0 = ScreenProjector.DefaultProjector.Project(TopLeftPoint, ZoomLevel);
+            Point p = p0 - delta;
 
             TopLeftPoint = ScreenProjector.DefaultProjector.InverseProject(p, ZoomLevel);
 
