@@ -13,6 +13,11 @@ namespace MapVisualization.Elements
             this.HorizontalIndex = HorizontalIndex;
         }
 
+        protected override int ZIndex
+        {
+            get { return -10; }
+        }
+
         public int HorizontalIndex { get; private set; }
         public int VerticalIndex { get; private set; }
         public int Zoom { get; private set; }

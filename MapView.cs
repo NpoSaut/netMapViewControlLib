@@ -10,7 +10,7 @@ using MapVisualization.TileLoaders;
 
 namespace MapVisualization
 {
-    public class MapView : DrawingContainer
+    public class MapView : MapVisualHost
     {
         public static readonly DependencyProperty TileLoaderProperty = DependencyProperty.Register(
                                                                                                    "TileLoader",

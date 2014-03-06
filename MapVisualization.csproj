@@ -47,7 +47,7 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DrawingContainer.cs" />
+    <Compile Include="MapVisualHost.cs" />
     <Compile Include="Elements\MapImageTileElement.cs" />
     <Compile Include="Elements\MapPathElement.cs" />
     <Compile Include="Elements\MapPointElement.cs" />

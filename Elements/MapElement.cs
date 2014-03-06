@@ -16,6 +16,13 @@ namespace MapVisualization.Elements
                 Enumerable.Range(0, 40000).Select(y => (double)y).ToArray());
         }
 
+        /// <summary>Z-индекс элемента на карте</summary>
+        /// <remarks>Меньшее значения индекса соответствуют нижним слоям на карте</remarks>
+        protected virtual int ZIndex
+        {
+            get { return 0; }
+        }
+
         /// <summary>Проектор географических координат в экранные</summary>
         protected ScreenProjector Projector
         {
@@ -32,7 +39,7 @@ namespace MapVisualization.Elements
         /// <returns></returns>
         public MapVisual GetVisual(int Zoom)
         {
-            var res = new MapVisual();
+            var res = new MapVisual(ZIndex);
             using (DrawingContext dc = res.RenderOpen())
             {
                 Draw(dc, Zoom);
