@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Windows.Media;
 using Geographics;
 
@@ -27,6 +28,19 @@ namespace MapVisualization.Elements
         protected ScreenProjector Projector
         {
             get { return ScreenProjector.DefaultProjector; }
+        }
+
+        /// <summary>Визуальный элемент, изображающий данный элемент карты</summary>
+        internal MapVisual AttachedVisual { get; set; }
+
+        /// <summary>Событие, сигнализирующее о том, что элемент запросил изменение своего визуального отображения</summary>
+        internal event EventHandler ChangeVisualRequested;
+
+        /// <summary>Отправляет запрос на смену своего визуального отображения</summary>
+        protected void RequestChangeVisual()
+        {
+            EventHandler handler = ChangeVisualRequested;
+            if (handler != null) handler(this, EventArgs.Empty);
         }
 
         /// <summary>Отрисовывает объект в указанном контексте рисования</summary>

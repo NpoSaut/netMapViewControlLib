@@ -84,27 +84,12 @@ namespace MapVisualization
 
         private void RefreshObjectsVisuals()
         {
-            foreach (var elementToVisual in _elementsToVisuals.ToList())
-            {
-                if (!elementToVisual.Key.TestVisual(VisibleArea))
-                {
-                    DeleteVisual(elementToVisual.Value);
-                    _elementsToVisuals.Remove(elementToVisual.Key);
-                }
-            }
-
             EarthArea vArea = VisibleArea;
-            foreach (
-                MapElement element in
-                    _elements.Except(_elementsToVisuals.Keys)
-                             .AsParallel()
-                             .Where(e => !_elementsToVisuals.ContainsKey(e) && e.TestVisual(vArea))
-                             .ToList())
+            var elementsVisibility =
+                _elements.AsParallel().Select(e => new { element = e, visibility = e.TestVisual(vArea) }).ToList();
+            foreach (var ev in elementsVisibility)
             {
-                MapVisual visual = element.GetVisual(ZoomLevel);
-                visual.Transform = _globalTransform;
-                AddVisual(visual);
-                _elementsToVisuals.Add(element, visual);
+                CheckVisual(ev.element, ev.visibility);
             }
         }
 
@@ -123,7 +108,6 @@ namespace MapVisualization
 
         private readonly List<MapElement> _elements = new List<MapElement>();
 
-        private readonly Dictionary<MapElement, MapVisual> _elementsToVisuals = new Dictionary<MapElement, MapVisual>();
         private readonly List<MapTileElement> _tiles = new List<MapTileElement>();
 
         private readonly Dictionary<MapTileElement, MapVisual> _tilesToVisuals =
@@ -151,13 +135,70 @@ namespace MapVisualization
         public void AddElement(MapElement Element)
         {
             _elements.Add(Element);
+            CheckVisual(Element);
         }
 
         public void RemoveElement(MapElement Element)
         {
+            CheckVisual(Element, false);
             _elements.Remove(Element);
-            if (_elementsToVisuals.ContainsKey(Element))
-                DeleteVisual(_elementsToVisuals[Element]);
+        }
+
+        /// <summary>Проверяет, и при необходимости отрисовывает или скрывает объект с карты</summary>
+        /// <param name="Element">Проверяемый объект</param>
+        private void CheckVisual(MapElement Element)
+        {
+            CheckVisual(Element, VisibleArea);
+        }
+
+        /// <summary>Проверяет, и при необходимости отрисовывает или скрывает объект с карты</summary>
+        /// <param name="Element">Проверяемый объект</param>
+        /// <param name="OnArea">Видимая в область карты</param>
+        private void CheckVisual(MapElement Element, EarthArea OnArea)
+        {
+            CheckVisual(Element, Element.TestVisual(OnArea));
+        }
+
+        /// <summary>Проверяет, и при необходимости отрисовывает или скрывает объект с карты</summary>
+        /// <param name="Element">Проверяемый объект</param>
+        /// <param name="IsElementVisible">Видим ли объект на карте в данный момент</param>
+        private void CheckVisual(MapElement Element, bool IsElementVisible)
+        {
+            if (IsElementVisible)
+            {
+                if (Element.AttachedVisual == null) VisualizeElement(Element);
+            }
+            else
+            {
+                if (Element.AttachedVisual != null) HideElement(Element);
+            }
+        }
+
+        /// <summary>Выводит визуальное представление элемента на карту</summary>
+        /// <param name="Element">Элемент для визуализации</param>
+        private void VisualizeElement(MapElement Element)
+        {
+            Element.AttachedVisual = Element.GetVisual(ZoomLevel);
+            Element.AttachedVisual.Transform = _globalTransform;
+            Element.ChangeVisualRequested += OnMapElementChangeVisualRequested;
+            AddVisual(Element.AttachedVisual);
+        }
+
+        /// <summary>Скрывает визуальное представление с карты</summary>
+        /// <param name="Element">Элемент для сокрытия</param>
+        private void HideElement(MapElement Element)
+        {
+            DeleteVisual(Element.AttachedVisual);
+            Element.ChangeVisualRequested -= OnMapElementChangeVisualRequested;
+            Element.AttachedVisual = null;
+        }
+
+        /// <summary>Выполняет действия по перерисовке визуального отображения элемента карты</summary>
+        private void OnMapElementChangeVisualRequested(object Sender, EventArgs Args)
+        {
+            var element = (MapElement)Sender;
+            HideElement(element);
+            VisualizeElement(element);
         }
 
         #endregion
