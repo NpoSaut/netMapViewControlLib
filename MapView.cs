@@ -286,7 +286,7 @@ namespace MapVisualization
 
         private readonly TranslateTransform _globalTransform;
         private Point? _dragStartPoint;
-        private bool _isMapWasMovedLastTime;
+        private double _isMapWasMovedDisstance;
         public int ZoomLevel { get; set; }
 
         protected virtual void OnCentralPointChanged(EarthPoint newCentralPoint)
@@ -321,10 +321,10 @@ namespace MapVisualization
         protected override void OnMouseDown(MouseButtonEventArgs e)
         {
             _dragStartPoint = e.GetPosition(this);
-            _isMapWasMovedLastTime = false;
+            _isMapWasMovedDisstance = 0;
             base.OnMouseDown(e);
-
-            OnGeographicMouseDown(new GeographicEventArgs(PointAt(_dragStartPoint.Value)));
+            
+            OnGeographicMouseDown(new GeographicEventArgs(PointAt(_dragStartPoint.Value), e));
         }
 
         protected override void OnMouseUp(MouseButtonEventArgs e)
@@ -332,8 +332,8 @@ namespace MapVisualization
             base.OnMouseUp(e);
 
             EarthPoint upPoint = PointAt(e.GetPosition(this));
-            OnGeographicMouseDown(new GeographicEventArgs(upPoint));
-            if (!_isMapWasMovedLastTime) OnGeographicMouseClick(new GeographicEventArgs(upPoint));
+            OnGeographicMouseDown(new GeographicEventArgs(upPoint, e));
+            if (_isMapWasMovedDisstance <= 10) OnGeographicMouseClick(new GeographicEventArgs(upPoint, e));
         }
 
         protected override void OnMouseMove(MouseEventArgs e)
@@ -341,9 +341,9 @@ namespace MapVisualization
             if (e.LeftButton == MouseButtonState.Pressed)
             {
                 Point dragCurrentPoint = e.GetPosition(this);
+                _isMapWasMovedDisstance += (dragCurrentPoint - _dragStartPoint).Value.Length;
                 if (_dragStartPoint != null) Move(dragCurrentPoint - _dragStartPoint.Value);
                 _dragStartPoint = dragCurrentPoint;
-                _isMapWasMovedLastTime = true;
             }
             base.OnMouseMove(e);
         }
@@ -353,7 +353,13 @@ namespace MapVisualization
 
     public class GeographicEventArgs : EventArgs
     {
-        public GeographicEventArgs(EarthPoint Point) { this.Point = Point; }
+        public GeographicEventArgs(EarthPoint Point, MouseEventArgs MouseEvent)
+        {
+            this.MouseEvent = MouseEvent;
+            this.Point = Point;
+        }
+
         public EarthPoint Point { get; private set; }
+        public MouseEventArgs MouseEvent { get; private set; }
     }
 }
