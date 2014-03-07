@@ -203,37 +203,6 @@ namespace MapVisualization
 
         #endregion
 
-        #region События кликов мыши
-
-        /// <summary>Нажатие кнопки мыши над картой</summary>
-        public event EventHandler<GeographicEventArgs> GeographicMouseDown;
-
-        /// <summary>Отпускание кнопки мыши над картой</summary>
-        public event EventHandler<GeographicEventArgs> GeographicMouseUp;
-
-        /// <summary>Щелчок мышью над картой</summary>
-        public event EventHandler<GeographicEventArgs> GeographicMouseClick;
-
-        protected virtual void OnGeographicMouseDown(GeographicEventArgs E)
-        {
-            EventHandler<GeographicEventArgs> handler = GeographicMouseDown;
-            if (handler != null) handler(this, E);
-        }
-
-        protected virtual void OnGeographicMouseUp(GeographicEventArgs E)
-        {
-            EventHandler<GeographicEventArgs> handler = GeographicMouseUp;
-            if (handler != null) handler(this, E);
-        }
-
-        protected virtual void OnGeographicMouseClick(GeographicEventArgs E)
-        {
-            EventHandler<GeographicEventArgs> handler = GeographicMouseClick;
-            if (handler != null) handler(this, E);
-        }
-
-        #endregion
-
         #region Скроллинг и позиционирование карты
 
         #region CentralPoint DependencyProperty
@@ -323,17 +292,6 @@ namespace MapVisualization
             _dragStartPoint = e.GetPosition(this);
             _isMapWasMovedDisstance = 0;
             base.OnMouseDown(e);
-            
-            OnGeographicMouseDown(new GeographicEventArgs(PointAt(_dragStartPoint.Value), e));
-        }
-
-        protected override void OnMouseUp(MouseButtonEventArgs e)
-        {
-            base.OnMouseUp(e);
-
-            EarthPoint upPoint = PointAt(e.GetPosition(this));
-            OnGeographicMouseDown(new GeographicEventArgs(upPoint, e));
-            if (_isMapWasMovedDisstance <= 10) OnGeographicMouseClick(new GeographicEventArgs(upPoint, e));
         }
 
         protected override void OnMouseMove(MouseEventArgs e)
@@ -348,18 +306,75 @@ namespace MapVisualization
             base.OnMouseMove(e);
         }
 
+        protected override void OnMouseUp(MouseButtonEventArgs e)
+        {
+            if (_isMapWasMovedDisstance < 10)
+            {
+                var act = MouseAction.None;
+                if (e.ChangedButton == MouseButton.Left)
+                    act = e.ClickCount == 1 ? MouseAction.LeftClick : MouseAction.LeftDoubleClick;
+                else if (e.ChangedButton == MouseButton.Right)
+                    act = e.ClickCount == 1 ? MouseAction.RightClick : MouseAction.RightDoubleClick;
+                else if (e.ChangedButton == MouseButton.Middle)
+                    act = MouseAction.WheelClick;
+
+                if (act != MouseAction.None) OnClick(act, e.GetPosition(this));
+            }
+
+            base.OnMouseUp(e);
+        }
+
+        #region Работа с мышью
+
+        public static readonly DependencyProperty ClickCommandProperty =
+            DependencyProperty.Register("ClickCommand", typeof (ICommand), typeof (MapView),
+                                        new PropertyMetadata(default(ICommand)));
+
+        public static readonly DependencyProperty ClickCommandParameterProperty =
+            DependencyProperty.Register("ClickCommandParameter", typeof (Object), typeof (MapView),
+                                        new PropertyMetadata(default(Object)));
+
+        public ICommand ClickCommand
+        {
+            get { return (ICommand)GetValue(ClickCommandProperty); }
+            set { SetValue(ClickCommandProperty, value); }
+        }
+
+        public Object ClickCommandParameter
+        {
+            get { return GetValue(ClickCommandParameterProperty); }
+            set { SetValue(ClickCommandParameterProperty, value); }
+        }
+
+        public event EventHandler<MapMouseActionEventArgs> Click;
+
+        private void OnClick(MouseAction ActionKind, Point ScreenPoint)
+        {
+            EventHandler<MapMouseActionEventArgs> handler = Click;
+            if (handler != null) handler(this, new MapMouseActionEventArgs(PointAt(ScreenPoint), ActionKind));
+
+            if (ClickCommand != null)
+                ClickCommand.Execute(ClickCommandParameter);
+        }
+
+        #endregion
+
         #endregion
     }
 
-    public class GeographicEventArgs : EventArgs
+    /// <summary>Представляет данные для событий, связанных с нажатием мышью на карте</summary>
+    public class MapMouseActionEventArgs : EventArgs
     {
-        public GeographicEventArgs(EarthPoint Point, MouseEventArgs MouseEvent)
+        public MapMouseActionEventArgs(EarthPoint Point, MouseAction Action)
         {
-            this.MouseEvent = MouseEvent;
+            this.Action = Action;
             this.Point = Point;
         }
 
+        /// <summary>Вид нажатия</summary>
+        public MouseAction Action { get; private set; }
+
+        /// <summary>Точка на карте, в которой совершено нажатие</summary>
         public EarthPoint Point { get; private set; }
-        public MouseEventArgs MouseEvent { get; private set; }
     }
 }
