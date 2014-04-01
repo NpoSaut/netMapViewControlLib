@@ -4,7 +4,7 @@ using System.Windows.Media;
 namespace MapVisualization
 {
     /// <summary>Панель - хост для визуальных элементов</summary>
-    public abstract class MapVisualHost : Control
+    public abstract class MapVisualHost : Panel
     {
         /// <summary>Визуальные элементы карты</summary>
         private readonly VisualCollection _visuals;
