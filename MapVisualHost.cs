@@ -1,5 +1,8 @@
-﻿using System.Windows.Controls;
+﻿using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
+using MapVisualization.Elements;
 
 namespace MapVisualization
 {
@@ -32,5 +35,50 @@ namespace MapVisualization
         /// <summary>Удаляет визуальный элемент с карты</summary>
         /// <param name="v"></param>
         protected void DeleteVisual(MapVisual v) { _visuals.Remove(v); }
+
+        /// <summary>Проверяет попадание мыши по элементу карты</summary>
+        public MapVisual HitVisual(Point point)
+        {
+            return VisualTreeHelper.HitTest(this, point).VisualHit as MapVisual;
+        }
+
+        private MapElement safeGetElement(MapVisual Visual) { return Visual != null ? Visual.Element : null; }
+
+        private MapElement _mouseMoveOnElement;
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            var newMouseMoveOnElement = safeGetElement(HitVisual(e.GetPosition(this)));
+            if (!Equals(_mouseMoveOnElement, newMouseMoveOnElement))
+            {
+                if (_mouseMoveOnElement != null) _mouseMoveOnElement.OnMouseLeave(e);
+                if (newMouseMoveOnElement != null) newMouseMoveOnElement.OnMouseEnter(e);
+            }
+            if (_mouseMoveOnElement != null) _mouseMoveOnElement.OnMouseMove(e);
+            _mouseMoveOnElement = newMouseMoveOnElement;
+            base.OnMouseMove(e);
+        }
+
+        private MouseButton? _clickButton;
+        private MapElement _mouseDownOnElement;
+        protected override void OnMouseDown(MouseButtonEventArgs e)
+        {
+            _clickButton = e.ChangedButton;
+            _mouseDownOnElement = safeGetElement(HitVisual(e.GetPosition(this)));
+            base.OnMouseDown(e);
+        }
+
+        protected override void OnMouseUp(MouseButtonEventArgs e)
+        {
+            if (_clickButton == e.ChangedButton)
+            {
+                var mouseUpOnElement = safeGetElement(HitVisual(e.GetPosition(this)));
+                if (mouseUpOnElement != null && Equals(_mouseDownOnElement, mouseUpOnElement))
+                {
+                    mouseUpOnElement.OnMouseClick(e);
+                }
+            }
+            _clickButton = null;
+            base.OnMouseUp(e);
+        }
     }
 }

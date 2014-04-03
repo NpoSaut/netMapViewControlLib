@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Windows.Input;
 using System.Windows.Media;
 using Geographics;
 
@@ -50,10 +51,9 @@ namespace MapVisualization.Elements
 
         /// <summary>Получает визуальный элемент для этого элемента карты</summary>
         /// <param name="Zoom">Индекс масштаба отображения</param>
-        /// <returns></returns>
         public MapVisual GetVisual(int Zoom)
         {
-            var res = new MapVisual(ZIndex);
+            var res = new MapVisual(this, ZIndex);
             using (DrawingContext dc = res.RenderOpen())
             {
                 Draw(dc, Zoom);
@@ -65,5 +65,12 @@ namespace MapVisualization.Elements
         /// <param name="VisibleArea">Область видимости</param>
         /// <returns>True, если объект может оказаться виден в указанной области</returns>
         public abstract bool TestVisual(EarthArea VisibleArea);
+
+        public Boolean IsMouseOver { get; private set; }
+
+        public virtual void OnMouseClick(MouseButtonEventArgs ChangedButton) { }
+        public virtual void OnMouseMove(MouseEventArgs MouseEventArgs) { }
+        public virtual void OnMouseEnter(MouseEventArgs MouseEventArgs) { IsMouseOver = true; }
+        public virtual void OnMouseLeave(MouseEventArgs MouseEventArgs) { IsMouseOver = false; }
     }
 }

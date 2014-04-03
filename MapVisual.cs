@@ -1,14 +1,19 @@
 using System.Windows.Media;
+using MapVisualization.Elements;
 
 namespace MapVisualization
 {
     public class MapVisual : DrawingVisual
     {
-        public MapVisual(int ZIndex = 0) { this.ZIndex = ZIndex; }
+        public MapElement Element { get; private set; }
 
-        /// <summary>
-        /// Z-индекс визуального элемента
-        /// </summary>
+        public MapVisual(MapElement Element, int ZIndex = 0)
+        {
+            this.Element = Element;
+            this.ZIndex = ZIndex;
+        }
+
+        /// <summary>Z-индекс визуального элемента</summary>
         public int ZIndex { get; private set; }
     }
 }

@@ -28,7 +28,7 @@ namespace MapVisualization
         public MapView()
         {
             Projector = ScreenProjector.DefaultProjector;
-            ZoomLevel = 13;
+            ZoomLevel = 14;
 
             Point topLeftScreenCoordinate = ScreenProjector.DefaultProjector.Project(CentralPoint, ZoomLevel);
             _globalTransform = new TranslateTransform(-topLeftScreenCoordinate.X, -topLeftScreenCoordinate.Y);
