@@ -32,12 +32,19 @@ namespace MapVisualization.TileLoaders
             if (!tilesDir.Exists) tilesDir.Create();
             if (!tileFile.Exists)
             {
-                Uri u = OsmIndexes.GetTileUri(x, y, zoom);
-                using (var wc = new WebClient())
+                try
                 {
-                    Debug.Print(" # Downloading Map tile: {0}", u);
-                    await wc.DownloadFileTaskAsync(u, tileFile.FullName);
-                    Debug.Print(" # Downloading done");
+                    Uri u = OsmIndexes.GetTileUri(x, y, zoom);
+                    using (var wc = new WebClient())
+                    {
+                        Debug.Print(" # Downloading Map tile: {0}", u);
+                        await wc.DownloadFileTaskAsync(u, tileFile.FullName);
+                        Debug.Print(" # Downloading done");
+                    }
+                }
+                catch (Exception)
+                {
+                    if (tileFile.Exists) tileFile.Delete();
                 }
             }
             return new BitmapImage(new Uri(tileFile.FullName));
