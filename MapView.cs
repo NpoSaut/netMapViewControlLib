@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
@@ -12,13 +13,17 @@ namespace MapVisualization
 {
     public class MapView : MapVisualHost
     {
-        public static readonly DependencyProperty TileLoaderProperty = DependencyProperty.Register(
-                                                                                                   "TileLoader",
-                                                                                                   typeof (ITileLoader),
-                                                                                                   typeof (MapView),
-                                                                                                   new PropertyMetadata(
-                                                                                                       AppDataFileCacheTileLoader
-                                                                                                           .DefaultLoader));
+        public static readonly DependencyProperty TileLoaderProperty =
+            DependencyProperty.Register("TileLoader",
+                                        typeof (ITileLoader),
+                                        typeof (MapView),
+                                        new PropertyMetadata(AppDataFileCacheTileLoader.DefaultLoader));
+
+        public static readonly DependencyProperty ElementsSourceProperty =
+            DependencyProperty.Register("ElementsSource",
+                                        typeof (IEnumerable<MapElement>),
+                                        typeof (MapView),
+                                        new PropertyMetadata (Enumerable.Empty<MapElement>(), ElementsSourcePropertyChangedCallback));
 
         static MapView()
         {
@@ -34,12 +39,45 @@ namespace MapVisualization
             _globalTransform = new TranslateTransform(-topLeftScreenCoordinate.X, -topLeftScreenCoordinate.Y);
         }
 
+        public IEnumerable<MapElement> ElementsSource
+        {
+            get { return (IEnumerable<MapElement>)GetValue(ElementsSourceProperty); }
+            set { SetValue(ElementsSourceProperty, value); }
+        }
+
         public ScreenProjector Projector { get; private set; }
 
         public ITileLoader TileLoader
         {
             get { return (ITileLoader)GetValue(TileLoaderProperty); }
             set { SetValue(TileLoaderProperty, value); }
+        }
+
+        private static void ElementsSourcePropertyChangedCallback(DependencyObject target,
+                                                                  DependencyPropertyChangedEventArgs e)
+        {
+            var map = (MapView)target;
+            var newEnumerable = (IEnumerable<MapElement>)e.NewValue;
+
+            foreach (MapElement mapElement in map._elements)
+                map.RemoveElement(mapElement);
+
+            foreach (MapElement mapElement in newEnumerable)
+                map.AddElement(mapElement);
+
+            var notifyCollection = newEnumerable as INotifyCollectionChanged;
+            if (notifyCollection != null) notifyCollection.CollectionChanged += map.ElementsSourceOnCollectionChanged;
+        }
+
+        private void ElementsSourceOnCollectionChanged(object Sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.NewItems != null)
+                foreach (MapElement element in e.NewItems.OfType<MapElement>())
+                    AddElement(element);
+
+            if (e.OldItems != null)
+                foreach (MapElement element in e.OldItems.OfType<MapElement>())
+                    RemoveElement(element);
         }
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
@@ -132,13 +170,13 @@ namespace MapVisualization
             }
         }
 
-        public void AddElement(MapElement Element)
+        protected void AddElement(MapElement Element)
         {
             _elements.Add(Element);
             CheckVisual(Element);
         }
 
-        public void RemoveElement(MapElement Element)
+        protected void RemoveElement(MapElement Element)
         {
             CheckVisual(Element, false);
             _elements.Remove(Element);
