@@ -23,12 +23,9 @@ namespace MapVisualization
             DependencyProperty.Register("ElementsSource",
                                         typeof (IEnumerable<MapElement>),
                                         typeof (MapView),
-                                        new PropertyMetadata (Enumerable.Empty<MapElement>(), ElementsSourcePropertyChangedCallback));
+                                        new PropertyMetadata(Enumerable.Empty<MapElement>(), ElementsSourcePropertyChangedCallback));
 
-        static MapView()
-        {
-            DefaultStyleKeyProperty.OverrideMetadata(typeof (MapView), new FrameworkPropertyMetadata(typeof (MapView)));
-        }
+        static MapView() { DefaultStyleKeyProperty.OverrideMetadata(typeof (MapView), new FrameworkPropertyMetadata(typeof (MapView))); }
 
         public MapView()
         {
@@ -72,12 +69,16 @@ namespace MapVisualization
         private void ElementsSourceOnCollectionChanged(object Sender, NotifyCollectionChangedEventArgs e)
         {
             if (e.NewItems != null)
+            {
                 foreach (MapElement element in e.NewItems.OfType<MapElement>())
                     AddElement(element);
+            }
 
             if (e.OldItems != null)
+            {
                 foreach (MapElement element in e.OldItems.OfType<MapElement>())
                     RemoveElement(element);
+            }
         }
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
@@ -101,6 +102,7 @@ namespace MapVisualization
             int h = (int)Math.Ceiling(ActualHeight / 256) + 1;
 
             for (int x = x0; x < x0 + w; x++)
+            {
                 for (int y = y0; y < y0 + h; y++)
                 {
                     if (!_tiles.Any(t => t.HorizontalIndex == x && t.VerticalIndex == y))
@@ -118,6 +120,7 @@ namespace MapVisualization
                         catch (Exception) { }
                     }
                 }
+            }
         }
 
         private void RefreshObjectsVisuals()
@@ -126,9 +129,7 @@ namespace MapVisualization
             var elementsVisibility =
                 _elements.AsParallel().Select(e => new { element = e, visibility = e.TestVisual(vArea) }).ToList();
             foreach (var ev in elementsVisibility)
-            {
                 CheckVisual(ev.element, ev.visibility);
-            }
         }
 
         /// <summary>Получает координаты точки, соответствующей точке с заданными экранными координатами</summary>
@@ -184,18 +185,12 @@ namespace MapVisualization
 
         /// <summary>Проверяет, и при необходимости отрисовывает или скрывает объект с карты</summary>
         /// <param name="Element">Проверяемый объект</param>
-        private void CheckVisual(MapElement Element)
-        {
-            CheckVisual(Element, VisibleArea);
-        }
+        private void CheckVisual(MapElement Element) { CheckVisual(Element, VisibleArea); }
 
         /// <summary>Проверяет, и при необходимости отрисовывает или скрывает объект с карты</summary>
         /// <param name="Element">Проверяемый объект</param>
         /// <param name="OnArea">Видимая в область карты</param>
-        private void CheckVisual(MapElement Element, EarthArea OnArea)
-        {
-            CheckVisual(Element, Element.TestVisual(OnArea));
-        }
+        private void CheckVisual(MapElement Element, EarthArea OnArea) { CheckVisual(Element, Element.TestVisual(OnArea)); }
 
         /// <summary>Проверяет, и при необходимости отрисовывает или скрывает объект с карты</summary>
         /// <param name="Element">Проверяемый объект</param>
@@ -206,10 +201,7 @@ namespace MapVisualization
             {
                 if (Element.AttachedVisual == null) VisualizeElement(Element);
             }
-            else
-            {
-                if (Element.AttachedVisual != null) HideElement(Element);
-            }
+            else if (Element.AttachedVisual != null) HideElement(Element);
         }
 
         /// <summary>Выводит визуальное представление элемента на карту</summary>
@@ -291,10 +283,18 @@ namespace MapVisualization
 
         #endregion
 
+        public static readonly DependencyProperty ZoomLevelProperty = DependencyProperty.Register(
+            "ZoomLevel", typeof (int), typeof (MapView), new PropertyMetadata(13));
+
         private readonly TranslateTransform _globalTransform;
         private Point? _dragStartPoint;
         private double _isMapWasMovedDisstance;
-        public int ZoomLevel { get; set; }
+
+        public int ZoomLevel
+        {
+            get { return (int)GetValue(ZoomLevelProperty); }
+            set { SetValue(ZoomLevelProperty, value); }
+        }
 
         protected virtual void OnCentralPointChanged(EarthPoint newCentralPoint)
         {
