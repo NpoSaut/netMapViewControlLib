@@ -334,7 +334,7 @@ namespace MapVisualization
 
         protected override void OnMouseMove(MouseEventArgs e)
         {
-            if (e.LeftButton == MouseButtonState.Pressed)
+            if (e.LeftButton == MouseButtonState.Pressed && _dragStartPoint != null)
             {
                 Point dragCurrentPoint = e.GetPosition(this);
                 _isMapWasMovedDisstance += (dragCurrentPoint - _dragStartPoint).Value.Length;
