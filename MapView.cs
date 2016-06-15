@@ -388,11 +388,13 @@ namespace MapVisualization
 
         private void OnClick(MouseAction ActionKind, Point ScreenPoint)
         {
+            var eventArgs = new MapMouseActionEventArgs(PointAt(ScreenPoint), ActionKind);
             EventHandler<MapMouseActionEventArgs> handler = Click;
-            if (handler != null) handler(this, new MapMouseActionEventArgs(PointAt(ScreenPoint), ActionKind));
+            if (handler != null)
+                handler(this, eventArgs);
 
             if (ClickCommand != null)
-                ClickCommand.Execute(ClickCommandParameter);
+                ClickCommand.Execute(eventArgs);
         }
 
         #endregion
