@@ -239,8 +239,9 @@ namespace MapVisualization
 
         public static readonly DependencyProperty CentralPointProperty =
             DependencyProperty.Register("CentralPoint", typeof (EarthPoint), typeof (MapView),
-                                        new PropertyMetadata(new EarthPoint(56.8302, 60.4928),
-                                                             CentralPointPropertyChangedCallback));
+                                        new FrameworkPropertyMetadata(new EarthPoint(56.8302, 60.4928),
+                                                                      FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
+                                                                      CentralPointPropertyChangedCallback));
 
         public EarthPoint CentralPoint
         {
