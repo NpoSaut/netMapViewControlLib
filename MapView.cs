@@ -330,7 +330,14 @@ namespace MapVisualization
         {
             _dragStartPoint = e.GetPosition(this);
             _isMapWasMovedDisstance = 0;
+            _isMouseGestureWasStartedOnMap = true;
             base.OnMouseDown(e);
+        }
+
+        protected override void OnMouseLeave(MouseEventArgs e)
+        {
+            _isMouseGestureWasStartedOnMap = false;
+            base.OnMouseLeave(e);
         }
 
         protected override void OnMouseMove(MouseEventArgs e)
@@ -347,7 +354,7 @@ namespace MapVisualization
 
         protected override void OnMouseUp(MouseButtonEventArgs e)
         {
-            if (_isMapWasMovedDisstance < 10)
+            if (_isMapWasMovedDisstance < 10 && _isMouseGestureWasStartedOnMap)
             {
                 var act = MouseAction.None;
                 if (e.ChangedButton == MouseButton.Left)
@@ -372,6 +379,8 @@ namespace MapVisualization
         public static readonly DependencyProperty ClickCommandParameterProperty =
             DependencyProperty.Register("ClickCommandParameter", typeof (Object), typeof (MapView),
                                         new PropertyMetadata(default(Object)));
+
+        private bool _isMouseGestureWasStartedOnMap;
 
         public ICommand ClickCommand
         {
