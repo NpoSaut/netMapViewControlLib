@@ -180,17 +180,17 @@ namespace MapVisualization
         {
             Dispatcher.BeginInvoke((Action<MapTileElement>)
                                    (tile =>
-                                   {
-                                       MapVisual oldVisual;
-                                       if (_tilesToVisuals.TryGetValue(tile, out oldVisual))
-                                       {
-                                           DeleteVisual(oldVisual);
-                                           _tilesToVisuals.Remove(tile);
-                                           var newVisual = tile.GetVisual(ZoomLevel);
-                                           newVisual.Transform = _globalTransform;
-                                           AddVisual(newVisual);
-                                           _tilesToVisuals.Add(tile, newVisual);
-                                       }
+                                    {
+                                        MapVisual oldVisual;
+                                        if (_tilesToVisuals.TryGetValue(tile, out oldVisual))
+                                        {
+                                            DeleteVisual(oldVisual);
+                                            _tilesToVisuals.Remove(tile);
+                                            MapVisual newVisual = tile.GetVisual(ZoomLevel);
+                                            newVisual.Transform = _globalTransform;
+                                            AddVisual(newVisual);
+                                            _tilesToVisuals.Add(tile, newVisual);
+                                        }
                                     }), Sender);
 
             //var tile = (MapTileElement)Sender;
@@ -251,7 +251,8 @@ namespace MapVisualization
         private void RedrawElement(MapElement Element)
         {
             HideElement(Element);
-            VisualizeElement(Element);
+            if (Element.TestVisual(VisibleArea))
+                VisualizeElement(Element);
         }
 
         /// <summary>Выполняет действия по перерисовке визуального отображения элемента карты</summary>
