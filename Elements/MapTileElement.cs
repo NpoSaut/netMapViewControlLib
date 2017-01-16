@@ -1,10 +1,11 @@
+using System;
 using System.Windows;
 using System.Windows.Media;
 using Geographics;
 
 namespace MapVisualization.Elements
 {
-    public abstract class MapTileElement : MapElement
+    public abstract class MapTileElement : MapElement, IDisposable
     {
         public MapTileElement(int HorizontalIndex, int VerticalIndex, int Zoom)
         {
@@ -35,5 +36,7 @@ namespace MapVisualization.Elements
         protected abstract void DrawTile(DrawingContext dc, Rect TileRect);
 
         public override bool TestVisual(EarthArea VisibleArea) { return true; }
+
+        public abstract void Dispose();
     }
 }

@@ -5,7 +5,6 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using Geographics;
 using MapVisualization.Elements;
 using MapVisualization.TileLoaders;
@@ -106,24 +105,17 @@ namespace MapVisualization
                 {
                     if (!_tiles.Any(t => t.HorizontalIndex == x && t.VerticalIndex == y))
                     {
-                        BitmapImage tileImage = TileLoader.GetTile(x, y, ZoomLevel);
-                        var tile = new MapImageTileElement(tileImage, x, y, ZoomLevel);
-                        Dispatcher.BeginInvoke((Action<MapTileElement>)AddTile, tile);
-
-                        //var tempTile = new MapStrubTileElement(x, y, ZoomLevel);
-                        //Dispatcher.BeginInvoke((Action<MapTileElement>)AddTile, tempTile);
-
-                        //try
-                        //{
-                        //    ImageSource tileImage = await TileLoader.GetTile(x, y, ZoomLevel);
-                        //    var tile = new MapImageTileElement(tileImage, x, y, ZoomLevel);
-                        //    Dispatcher.BeginInvoke((Action<MapTileElement>)RemoveTile, tempTile);
-                        //    Dispatcher.BeginInvoke((Action<MapTileElement>)AddTile, tile);
-                        //}
-                        //catch (Exception) { }
+                        ITileLoadingContext tileContext = TileLoader.GetTile(x, y, ZoomLevel);
+                        var tile = new MapImageTileElement(tileContext, x, y, ZoomLevel);
+                        AddTile(tile);
                     }
                 }
             }
+            _tiles
+                .Where(t => t.HorizontalIndex < x0 || t.HorizontalIndex > x0 + w ||
+                            t.VerticalIndex < y0 || t.VerticalIndex > y0 + h)
+                .ToList()
+                .ForEach(RemoveTile);
         }
 
         private void RefreshObjectsVisuals()
@@ -174,6 +166,7 @@ namespace MapVisualization
                 _tilesToVisuals.Remove(Tile);
             }
             Tile.ChangeVisualRequested -= TileChangeRequested;
+            Tile.Dispose();
         }
 
         private void TileChangeRequested(object Sender, EventArgs E)

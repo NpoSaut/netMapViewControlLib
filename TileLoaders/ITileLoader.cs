@@ -1,7 +1,3 @@
-using System.Threading.Tasks;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-
 namespace MapVisualization.TileLoaders
 {
     /// <summary>Интерфейс загрузчика тайлов карты</summary>
@@ -11,7 +7,6 @@ namespace MapVisualization.TileLoaders
         /// <param name="x">Горизонтальный индекс</param>
         /// <param name="y">Вертикальный индекс</param>
         /// <param name="zoom">Уровень масштабирования</param>
-        /// <returns>ImageSource тайла</returns>
-        BitmapImage GetTile(int x, int y, int zoom);
+        ITileLoadingContext GetTile(int x, int y, int zoom);
     }
 }
