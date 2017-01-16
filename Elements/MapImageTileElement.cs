@@ -1,18 +1,31 @@
-﻿using System.Windows;
+﻿using System.Diagnostics;
+using System.Windows;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace MapVisualization.Elements
 {
     public class MapImageTileElement : MapTileElement
     {
-        public MapImageTileElement(ImageSource TileImage, int HorizontalIndex, int VerticalIndex, int Zoom)
+        private readonly BitmapImage _tileImage;
+
+        public MapImageTileElement(BitmapImage TileImage, int HorizontalIndex, int VerticalIndex, int Zoom)
             : base(HorizontalIndex, VerticalIndex, Zoom)
         {
-            this.TileImage = TileImage;
+            _tileImage = TileImage;
+            _tileImage.DownloadCompleted += (Sender, Args) =>
+                                            {
+                                                RequestChangeVisual();
+                                                Debug.Print(" # Tile Loaded");
+                                            };
         }
 
-        public ImageSource TileImage { get; private set; }
-
-        protected override void DrawTile(DrawingContext dc, Rect TileRect) { dc.DrawImage(TileImage, TileRect); }
+        protected override void DrawTile(DrawingContext dc, Rect TileRect)
+        {
+            if (_tileImage.IsDownloading)
+                dc.DrawRectangle(Brushes.LemonChiffon, null, TileRect);
+            else
+                dc.DrawImage(_tileImage, TileRect);
+        }
     }
 }

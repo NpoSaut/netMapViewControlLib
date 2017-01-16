@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Geographics;
 using MapVisualization.Elements;
 using MapVisualization.TileLoaders;
@@ -17,7 +18,7 @@ namespace MapVisualization
             DependencyProperty.Register("TileLoader",
                                         typeof (ITileLoader),
                                         typeof (MapView),
-                                        new PropertyMetadata(AppDataFileCacheTileLoader.DefaultLoader));
+                                        new PropertyMetadata(new WebTileLoader()));
 
         public static readonly DependencyProperty ElementsSourceProperty =
             DependencyProperty.Register("ElementsSource",
@@ -30,8 +31,6 @@ namespace MapVisualization
         public MapView()
         {
             Projector = ScreenProjector.DefaultProjector;
-            ZoomLevel = 14;
-
             Point topLeftScreenCoordinate = ScreenProjector.DefaultProjector.Project(CentralPoint, ZoomLevel);
             _globalTransform = new TranslateTransform(-topLeftScreenCoordinate.X, -topLeftScreenCoordinate.Y);
         }
@@ -93,7 +92,7 @@ namespace MapVisualization
             CentralPoint = Projector.InverseProject(newScreenCentralPoint, ZoomLevel);
         }
 
-        private async void RefreshTiles()
+        private void RefreshTiles()
         {
             int x0 = OsmIndexes.GetHorizontalIndex(VisibleArea.MostWesternLongitude, ZoomLevel);
             int y0 = OsmIndexes.GetVerticalIndex(VisibleArea.MostNorthenLatitude, ZoomLevel);
@@ -107,17 +106,21 @@ namespace MapVisualization
                 {
                     if (!_tiles.Any(t => t.HorizontalIndex == x && t.VerticalIndex == y))
                     {
-                        var tempTile = new MapStrubTileElement(x, y, ZoomLevel);
-                        Dispatcher.BeginInvoke((Action<MapTileElement>)AddTile, tempTile);
+                        BitmapImage tileImage = TileLoader.GetTile(x, y, ZoomLevel);
+                        var tile = new MapImageTileElement(tileImage, x, y, ZoomLevel);
+                        Dispatcher.BeginInvoke((Action<MapTileElement>)AddTile, tile);
 
-                        try
-                        {
-                            ImageSource tileImage = await TileLoader.GetTileAsync(x, y, ZoomLevel);
-                            var tile = new MapImageTileElement(tileImage, x, y, ZoomLevel);
-                            Dispatcher.BeginInvoke((Action<MapTileElement>)RemoveTile, tempTile);
-                            Dispatcher.BeginInvoke((Action<MapTileElement>)AddTile, tile);
-                        }
-                        catch (Exception) { }
+                        //var tempTile = new MapStrubTileElement(x, y, ZoomLevel);
+                        //Dispatcher.BeginInvoke((Action<MapTileElement>)AddTile, tempTile);
+
+                        //try
+                        //{
+                        //    ImageSource tileImage = await TileLoader.GetTile(x, y, ZoomLevel);
+                        //    var tile = new MapImageTileElement(tileImage, x, y, ZoomLevel);
+                        //    Dispatcher.BeginInvoke((Action<MapTileElement>)RemoveTile, tempTile);
+                        //    Dispatcher.BeginInvoke((Action<MapTileElement>)AddTile, tile);
+                        //}
+                        //catch (Exception) { }
                     }
                 }
             }
@@ -159,6 +162,7 @@ namespace MapVisualization
             visual.Transform = _globalTransform;
             AddVisual(visual);
             _tilesToVisuals.Add(Tile, visual);
+            Tile.ChangeVisualRequested += TileChangeRequested;
         }
 
         private void RemoveTile(MapTileElement Tile)
@@ -169,6 +173,27 @@ namespace MapVisualization
                 DeleteVisual(_tilesToVisuals[Tile]);
                 _tilesToVisuals.Remove(Tile);
             }
+            Tile.ChangeVisualRequested -= TileChangeRequested;
+        }
+
+        private void TileChangeRequested(object Sender, EventArgs E)
+        {
+            Dispatcher.BeginInvoke((Action<MapTileElement>)
+                                   (tile =>
+                                   {
+                                       MapVisual oldVisual;
+                                       if (_tilesToVisuals.TryGetValue(tile, out oldVisual))
+                                       {
+                                           DeleteVisual(oldVisual);
+                                           _tilesToVisuals.Remove(tile);
+                                           var newVisual = tile.GetVisual(ZoomLevel);
+                                           newVisual.Transform = _globalTransform;
+                                           AddVisual(newVisual);
+                                           _tilesToVisuals.Add(tile, newVisual);
+                                       }
+                                    }), Sender);
+
+            //var tile = (MapTileElement)Sender;
         }
 
         protected void AddElement(MapElement Element)
@@ -223,12 +248,17 @@ namespace MapVisualization
             Element.AttachedVisual = null;
         }
 
+        private void RedrawElement(MapElement Element)
+        {
+            HideElement(Element);
+            VisualizeElement(Element);
+        }
+
         /// <summary>Выполняет действия по перерисовке визуального отображения элемента карты</summary>
         private void OnMapElementChangeVisualRequested(object Sender, EventArgs Args)
         {
             var element = (MapElement)Sender;
-            HideElement(element);
-            VisualizeElement(element);
+            RedrawElement(element);
         }
 
         #endregion
@@ -285,7 +315,7 @@ namespace MapVisualization
         #endregion
 
         public static readonly DependencyProperty ZoomLevelProperty = DependencyProperty.Register(
-            "ZoomLevel", typeof (int), typeof (MapView), new PropertyMetadata(13));
+            "ZoomLevel", typeof (int), typeof (MapView), new PropertyMetadata(13, ZoomChanged));
 
         private readonly TranslateTransform _globalTransform;
         private Point? _dragStartPoint;
@@ -295,6 +325,16 @@ namespace MapVisualization
         {
             get { return (int)GetValue(ZoomLevelProperty); }
             set { SetValue(ZoomLevelProperty, value); }
+        }
+
+        private static void ZoomChanged(DependencyObject Sender, DependencyPropertyChangedEventArgs Args) { ((MapView)Sender).ZoomChanged(Args); }
+
+        private void ZoomChanged(DependencyPropertyChangedEventArgs e)
+        {
+            OnCentralPointChanged(CentralPoint);
+            _tiles.ToList().ForEach(RemoveTile);
+            _elements.ForEach(RedrawElement);
+            RefreshTiles();
         }
 
         protected virtual void OnCentralPointChanged(EarthPoint newCentralPoint)
@@ -324,6 +364,15 @@ namespace MapVisualization
             Point p0 = ScreenProjector.DefaultProjector.Project(CentralPoint, ZoomLevel);
             Point p = p0 - delta;
             CentralPoint = ScreenProjector.DefaultProjector.InverseProject(p, ZoomLevel);
+        }
+
+        protected override void OnMouseWheel(MouseWheelEventArgs e)
+        {
+            if (e.Delta < 0)
+                ZoomLevel--;
+            if (e.Delta > 0)
+                ZoomLevel++;
+            base.OnMouseWheel(e);
         }
 
         protected override void OnMouseDown(MouseButtonEventArgs e)

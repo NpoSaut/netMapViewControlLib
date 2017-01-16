@@ -22,13 +22,13 @@ namespace MapVisualization.Elements
         /// <summary>Возникает при изменении позиции точки</summary>
         protected virtual void OnPositionChanged() { RequestChangeVisual(); }
 
-        protected abstract void DrawPointElement(DrawingContext dc);
+        protected abstract void DrawPointElement(DrawingContext dc, int Zoom);
 
         protected override void Draw(DrawingContext dc, int Zoom)
         {
             Point elementPoint = Projector.Project(Position, Zoom);
             dc.PushTransform(new TranslateTransform(elementPoint.X, elementPoint.Y));
-            DrawPointElement(dc);
+            DrawPointElement(dc, Zoom);
             dc.Pop();
         }
 
