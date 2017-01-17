@@ -409,7 +409,7 @@ namespace MapVisualization
 
                 if (act != MouseAction.None) OnClick(act, e.GetPosition(this));
             }
-
+            _dragStartPoint = null;
             base.OnMouseUp(e);
         }
 
