@@ -362,10 +362,19 @@ namespace MapVisualization
 
         protected override void OnMouseWheel(MouseWheelEventArgs e)
         {
+            EarthPoint pointedPoint = PointAt(e.GetPosition(this));
             if (e.Delta < 0)
+            {
                 ZoomLevel--;
+                CentralPoint = new EarthPoint(CentralPoint.Latitude - 1.0 * (pointedPoint.Latitude - CentralPoint.Latitude),
+                                              CentralPoint.Longitude - 1.0 * (pointedPoint.Longitude - CentralPoint.Longitude));
+            }
             if (e.Delta > 0)
+            {
                 ZoomLevel++;
+                CentralPoint = new EarthPoint(CentralPoint.Latitude + 0.5 * (pointedPoint.Latitude - CentralPoint.Latitude),
+                                              CentralPoint.Longitude + 0.5 * (pointedPoint.Longitude - CentralPoint.Longitude));
+            }
             base.OnMouseWheel(e);
         }
 
