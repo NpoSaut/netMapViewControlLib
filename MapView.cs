@@ -215,7 +215,7 @@ namespace MapVisualization
         /// <param name="IsElementVisible">Видим ли объект на карте в данный момент</param>
         private void CheckVisual(MapElement Element, bool IsElementVisible)
         {
-            if (IsElementVisible)
+            if (IsElementVisible && Element.ZoomRestriction <= ZoomLevel)
             {
                 if (Element.AttachedVisual == null) VisualizeElement(Element);
             }
