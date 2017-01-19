@@ -309,7 +309,13 @@ namespace MapVisualization
         #endregion
 
         public static readonly DependencyProperty ZoomLevelProperty = DependencyProperty.Register(
-            "ZoomLevel", typeof (int), typeof (MapView), new PropertyMetadata(13, ZoomChanged));
+            "ZoomLevel", typeof (int), typeof (MapView), new PropertyMetadata(13, ZoomChanged, CoerceZoom));
+
+        private static object CoerceZoom(DependencyObject D, object Basevalue)
+        {
+            var z = (int)Basevalue;
+            return Math.Max(2, Math.Min(18, z));
+        }
 
         private readonly TranslateTransform _globalTransform;
         private Point? _dragStartPoint;
