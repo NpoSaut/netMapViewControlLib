@@ -9,6 +9,7 @@ using Geographics;
 namespace MapVisualization.Elements
 {
     /// <summary>Элемент карты</summary>
+    [ZoomRestriction(0)]
     public abstract class MapElement
     {
         protected static GuidelineSet ScreenGuidelineSet;
