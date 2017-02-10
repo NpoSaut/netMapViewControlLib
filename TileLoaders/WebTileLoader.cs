@@ -2,20 +2,17 @@
 using System.Diagnostics;
 using System.IO;
 using System.Net;
-using System.Reflection;
 using System.Windows.Media.Imaging;
-using MapVisualization.Annotations;
+using MapVisualization.TileLoaders.TilePathProvider;
 
 namespace MapVisualization.TileLoaders
 {
     /// <summary>Загрузчик тайлов, обеспечивающий кеширование тайлов в файловой системе</summary>
     public class WebTileLoader : ITileLoader
     {
-        private static readonly string _tilesCacheRoot =
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                         "Saut",
-                         Assembly.GetExecutingAssembly().GetName().Name,
-                         "Tiles Cache");
+        private readonly ITilePathProvider _pathProvider;
+
+        public WebTileLoader(ITilePathProvider PathProvider) { _pathProvider = PathProvider; }
 
         /// <summary>Загружает тайл с указанными индексами</summary>
         /// <param name="x">Горизонтальный индекс</param>
@@ -24,23 +21,22 @@ namespace MapVisualization.TileLoaders
         /// <returns>ImageSource тайла</returns>
         public ITileLoadingContext GetTile(int x, int y, int zoom)
         {
-            var context = new LoadingContext(x, y, zoom);
+            var context = new LoadingContext(_pathProvider.GetLocalPath(x, y, zoom),
+                                             _pathProvider.GetWebPath(x, y, zoom));
             context.BeginLoading();
             return context;
         }
 
         private class LoadingContext : ITileLoadingContext
         {
-            private readonly int _x;
-            private readonly int _y;
-            private readonly int _zoom;
+            private readonly string _localPath;
+            private readonly string _webPath;
             private WebClient _webClient;
 
-            public LoadingContext(int X, int Y, int Zoom)
+            public LoadingContext(string LocalPath, string WebPath)
             {
-                _x = X;
-                _y = Y;
-                _zoom = Zoom;
+                _localPath = LocalPath;
+                _webPath = WebPath;
             }
 
             public bool IsReady { get; private set; }
@@ -63,32 +59,23 @@ namespace MapVisualization.TileLoaders
             {
                 try
                 {
-                    string tileImageFileName = CachePath();
-                    if (!File.Exists(tileImageFileName))
+                    if (!File.Exists(_localPath))
                     {
                         using (_webClient = new WebClient())
                         {
-                            byte[] tileData = await _webClient.DownloadDataTaskAsync(OsmIndexes.GetTileUri(_x, _y, _zoom));
-                            Directory.CreateDirectory(Path.GetDirectoryName(tileImageFileName));
-                            File.WriteAllBytes(tileImageFileName, tileData);
+                            byte[] tileData = await _webClient.DownloadDataTaskAsync(_webPath);
+                            Directory.CreateDirectory(Path.GetDirectoryName(_localPath));
+                            File.WriteAllBytes(_localPath, tileData);
                         }
                     }
-                    Image = new BitmapImage(new Uri(tileImageFileName));
+                    Image = new BitmapImage(new Uri(_localPath));
                     IsReady = true;
                     OnReady();
-                    Debug.Print(" # {0}:{1} Ready", _x, _y);
                 }
                 catch (Exception e)
                 {
-                    Debug.Print(" # {0}:{1} {2}", _x, _y, e.Message);
+                    Debug.Print(" # Load tile error: {0}", e.Message);
                 }
-            }
-
-            private string CachePath()
-            {
-                return Path.Combine(_tilesCacheRoot,
-                                    _zoom.ToString(),
-                                    String.Format("{0}.{1}.png", _x, _y));
             }
         }
     }

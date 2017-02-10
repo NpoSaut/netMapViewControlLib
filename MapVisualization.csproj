@@ -56,6 +56,9 @@
     <Compile Include="Properties\Annotations.cs" />
     <Compile Include="TileLoaders\ITileLoader.cs" />
     <Compile Include="TileLoaders\TileLoadingContext.cs" />
+    <Compile Include="TileLoaders\TilePathProvider\ITilePathProvider.cs" />
+    <Compile Include="TileLoaders\TilePathProvider\OsmTilePathProviders.cs" />
+    <Compile Include="TileLoaders\TilePathProvider\TilePathProvider.cs" />
     <Compile Include="TileLoaders\WebTileLoader.cs" />
     <Page Include="Themes\Generic.xaml">
       <Generator>MSBuild:Compile</Generator>

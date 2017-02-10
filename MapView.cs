@@ -8,6 +8,7 @@ using System.Windows.Media;
 using Geographics;
 using MapVisualization.Elements;
 using MapVisualization.TileLoaders;
+using MapVisualization.TileLoaders.TilePathProvider;
 
 namespace MapVisualization
 {
@@ -17,7 +18,8 @@ namespace MapVisualization
             DependencyProperty.Register("TileLoader",
                                         typeof (ITileLoader),
                                         typeof (MapView),
-                                        new PropertyMetadata(new WebTileLoader()));
+                                        new PropertyMetadata(new WebTileLoader(OsmTilePathProviders.Retina),
+                                            TileLoaderPropertyChangedCallback));
 
         public static readonly DependencyProperty ElementsSourceProperty =
             DependencyProperty.Register("ElementsSource",
@@ -46,6 +48,13 @@ namespace MapVisualization
         {
             get { return (ITileLoader)GetValue(TileLoaderProperty); }
             set { SetValue(TileLoaderProperty, value); }
+        }
+
+        private static void TileLoaderPropertyChangedCallback(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var sender = (MapView)d;
+            sender._tiles.ToList().ForEach(sender.RemoveTile);
+            sender.RefreshTiles();
         }
 
         private static void ElementsSourcePropertyChangedCallback(DependencyObject target,
