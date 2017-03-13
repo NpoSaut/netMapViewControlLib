@@ -27,7 +27,7 @@ namespace MapVisualization
         {
             int index;
             for (index = 0; index < _visuals.Count; index++)
-                if (((MapVisual)_visuals[index]).ZIndex > v.ZIndex) break;
+                if (((MapVisual)_visuals[index]).ZIndex >= v.ZIndex) break;
 
             _visuals.Insert(index, v);
         }
