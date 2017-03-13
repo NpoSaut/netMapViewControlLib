@@ -257,9 +257,10 @@ namespace MapVisualization
 
         private void RedrawElement(MapElement Element)
         {
-            HideElement(Element);
             if (Element.TestVisual(VisibleArea))
-                VisualizeElement(Element);
+                Element.RedrawVisual(ZoomLevel);
+            else
+                HideElement(Element);
         }
 
         /// <summary>Выполняет действия по перерисовке визуального отображения элемента карты</summary>

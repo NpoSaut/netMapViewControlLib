@@ -75,6 +75,16 @@ namespace MapVisualization.Elements
             return res;
         }
 
+        /// <summary>Перерисовывает визуальный элемент для этого элемента карты</summary>
+        /// <param name="Zoom">Индекс масштаба отображения</param>
+        public void RedrawVisual(int Zoom)
+        {
+            using (DrawingContext dc = AttachedVisual.RenderOpen())
+            {
+                Draw(dc, Zoom);
+            }
+        }
+
         /// <summary>Проверяет, попадает ли этот элемент в указанную области видимости</summary>
         /// <param name="VisibleArea">Область видимости</param>
         /// <returns>True, если объект может оказаться виден в указанной области</returns>
