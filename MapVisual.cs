@@ -14,6 +14,6 @@ namespace MapVisualization
         }
 
         /// <summary>Z-индекс визуального элемента</summary>
-        public int ZIndex { get; private set; }
+        public readonly int ZIndex;
     }
 }
