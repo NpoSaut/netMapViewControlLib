@@ -171,7 +171,9 @@ namespace MapVisualization
             _tiles.Remove(Tile);
             if (_tilesToVisuals.ContainsKey(Tile))
             {
-                DeleteVisual(_tilesToVisuals[Tile]);
+                var visual = _tilesToVisuals[Tile];
+                visual.Transform = null;
+                DeleteVisual(visual);
                 _tilesToVisuals.Remove(Tile);
             }
             Tile.ChangeVisualRequested -= TileChangeRequested;
@@ -245,6 +247,9 @@ namespace MapVisualization
         /// <param name="Element">Элемент для сокрытия</param>
         private void HideElement(MapElement Element)
         {
+            if (Element.AttachedVisual == null) return;
+
+            Element.AttachedVisual.Transform = null;
             DeleteVisual(Element.AttachedVisual);
             Element.ChangeVisualRequested -= OnMapElementChangeVisualRequested;
             Element.AttachedVisual = null;
