@@ -12,7 +12,7 @@ namespace MapVisualization.Elements
     [ZoomRestriction(0)]
     public abstract class MapElement
     {
-        protected static GuidelineSet ScreenGuidelineSet;
+        protected static readonly GuidelineSet ScreenGuidelineSet;
         private static readonly Dictionary<Type, int> _zoomRestrictions = new Dictionary<Type, int>();
         private readonly Lazy<int> _lazyZoomRestriction;
 
