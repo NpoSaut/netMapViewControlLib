@@ -258,7 +258,10 @@ namespace MapVisualization
         private void RedrawElement(MapElement Element)
         {
             if (Element.TestVisual(VisibleArea))
-                Element.RedrawVisual(ZoomLevel);
+                if (Element.AttachedVisual != null)
+                    Element.RedrawVisual(ZoomLevel);
+                else
+                    VisualizeElement(Element);
             else
                 HideElement(Element);
         }
@@ -267,7 +270,10 @@ namespace MapVisualization
         private void OnMapElementChangeVisualRequested(object Sender, EventArgs Args)
         {
             var element = (MapElement)Sender;
-            RedrawElement(element);
+            if (element.AttachedVisual != null)
+                HideElement(element);
+            if (element.TestVisual(VisibleArea))
+                VisualizeElement(element);
         }
 
         #endregion

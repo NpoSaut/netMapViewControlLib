@@ -12,6 +12,11 @@ namespace MapVisualization
         /// <summary>Визуальные элементы карты</summary>
         private readonly VisualCollection _visuals;
 
+        private MouseButton? _clickButton;
+        private MapElement _mouseDownOnElement;
+
+        private MapElement _mouseMoveOnElement;
+
         protected MapVisualHost() { _visuals = new VisualCollection(this); }
 
         protected override int VisualChildrenCount
@@ -26,8 +31,8 @@ namespace MapVisualization
         protected void AddVisual(MapVisual v)
         {
             int index;
-            for (index = 0; index < _visuals.Count; index++)
-                if (((MapVisual)_visuals[index]).ZIndex >= v.ZIndex) break;
+            for (index = _visuals.Count; index > 0; index--)
+                if (((MapVisual)_visuals[index - 1]).ZIndex <= v.ZIndex) break;
 
             _visuals.Insert(index, v);
         }
@@ -37,14 +42,10 @@ namespace MapVisualization
         protected void DeleteVisual(MapVisual v) { _visuals.Remove(v); }
 
         /// <summary>Проверяет попадание мыши по элементу карты</summary>
-        public MapVisual HitVisual(Point point)
-        {
-            return VisualTreeHelper.HitTest(this, point).VisualHit as MapVisual;
-        }
+        public MapVisual HitVisual(Point point) { return VisualTreeHelper.HitTest(this, point).VisualHit as MapVisual; }
 
         private MapElement safeGetElement(MapVisual Visual) { return Visual != null ? Visual.Element : null; }
 
-        private MapElement _mouseMoveOnElement;
         protected override void OnMouseMove(MouseEventArgs e)
         {
             var newMouseMoveOnElement = safeGetElement(HitVisual(e.GetPosition(this)));
@@ -58,8 +59,6 @@ namespace MapVisualization
             base.OnMouseMove(e);
         }
 
-        private MouseButton? _clickButton;
-        private MapElement _mouseDownOnElement;
         protected override void OnMouseDown(MouseButtonEventArgs e)
         {
             _clickButton = e.ChangedButton;
@@ -73,9 +72,7 @@ namespace MapVisualization
             {
                 var mouseUpOnElement = safeGetElement(HitVisual(e.GetPosition(this)));
                 if (mouseUpOnElement != null && Equals(_mouseDownOnElement, mouseUpOnElement))
-                {
                     mouseUpOnElement.OnMouseClick(e);
-                }
             }
             _clickButton = null;
             base.OnMouseUp(e);
