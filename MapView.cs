@@ -130,10 +130,11 @@ namespace MapVisualization
         private void RefreshObjectsVisuals()
         {
             EarthArea vArea = VisibleArea;
-            var elementsVisibility =
-                _elements.AsParallel().Select(e => new { element = e, visibility = e.TestVisual(vArea) }).ToList();
-            foreach (var ev in elementsVisibility)
-                CheckVisual(ev.element, ev.visibility);
+            foreach (var element in _elements)
+            {
+                bool visibility = element.TestVisual(vArea);
+                CheckVisual(element, visibility);
+            }
         }
 
         /// <summary>Получает координаты точки, соответствующей точке с заданными экранными координатами</summary>
