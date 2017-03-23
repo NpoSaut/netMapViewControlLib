@@ -9,7 +9,7 @@ namespace MapVisualization.Elements
         private readonly ITileLoadingContext _tileImage;
 
         public MapImageTileElement(ITileLoadingContext TileImage, int HorizontalIndex, int VerticalIndex, int Zoom)
-            : base(HorizontalIndex, VerticalIndex, Zoom)
+            : base(HorizontalIndex, VerticalIndex)
         {
             _tileImage = TileImage;
             _tileImage.Ready += (Sender, Args) => RequestChangeVisual();

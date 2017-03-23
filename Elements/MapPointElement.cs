@@ -15,7 +15,7 @@ namespace MapVisualization.Elements
         protected static readonly Pen TextBoxStrokePen = new Pen(Brushes.DimGray, 1);
 
         private EarthPoint _position;
-        public MapPointElement(EarthPoint Position) { _position = Position; }
+        protected MapPointElement(EarthPoint Position) { _position = Position; }
 
         public EarthPoint Position
         {

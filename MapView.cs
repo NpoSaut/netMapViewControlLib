@@ -27,11 +27,13 @@ namespace MapVisualization
                                         typeof (MapView),
                                         new PropertyMetadata(Enumerable.Empty<MapElement>(), ElementsSourcePropertyChangedCallback));
 
+        private readonly ScreenProjector _projector;
+
         static MapView() { DefaultStyleKeyProperty.OverrideMetadata(typeof (MapView), new FrameworkPropertyMetadata(typeof (MapView))); }
 
         public MapView()
         {
-            Projector = ScreenProjector.DefaultProjector;
+            _projector = ScreenProjector.DefaultProjector;
             Point topLeftScreenCoordinate = ScreenProjector.DefaultProjector.Project(CentralPoint, ZoomLevel);
             _globalTransform = new TranslateTransform(-topLeftScreenCoordinate.X, -topLeftScreenCoordinate.Y);
         }
@@ -41,8 +43,6 @@ namespace MapVisualization
             get { return (IEnumerable<MapElement>)GetValue(ElementsSourceProperty); }
             set { SetValue(ElementsSourceProperty, value); }
         }
-
-        public ScreenProjector Projector { get; private set; }
 
         public ITileLoader TileLoader
         {
@@ -94,10 +94,10 @@ namespace MapVisualization
 
             var delta = new Vector(sizeInfo.NewSize.Width - sizeInfo.PreviousSize.Width,
                                    sizeInfo.NewSize.Height - sizeInfo.PreviousSize.Height);
-            Point oldScreenCentralPoint = Projector.Project(CentralPoint, ZoomLevel);
+            Point oldScreenCentralPoint = _projector.Project(CentralPoint, ZoomLevel);
             Point newScreenCentralPoint = oldScreenCentralPoint + 0.5 * delta;
 
-            CentralPoint = Projector.InverseProject(newScreenCentralPoint, ZoomLevel);
+            CentralPoint = _projector.InverseProject(newScreenCentralPoint, ZoomLevel);
         }
 
         private void RefreshTiles()
@@ -142,10 +142,10 @@ namespace MapVisualization
         /// <returns>Координаты точки на поверхности Земли, соответствующие точке на карте</returns>
         public EarthPoint PointAt(Point screenPoint)
         {
-            Point globalScreenCenter = Projector.Project(CentralPoint, ZoomLevel);
+            Point globalScreenCenter = _projector.Project(CentralPoint, ZoomLevel);
             Point globalScreenPoint = globalScreenCenter + (Vector)screenPoint
                                       - new Vector(ActualWidth / 2, ActualHeight / 2);
-            return Projector.InverseProject(globalScreenPoint, ZoomLevel);
+            return _projector.InverseProject(globalScreenPoint, ZoomLevel);
         }
 
         #region Работа со списком элементов
@@ -157,7 +157,7 @@ namespace MapVisualization
         private readonly Dictionary<MapTileElement, MapVisual> _tilesToVisuals =
             new Dictionary<MapTileElement, MapVisual>();
 
-        public void AddTile(MapTileElement Tile)
+        private void AddTile(MapTileElement Tile)
         {
             _tiles.Add(Tile);
             MapVisual visual = Tile.GetVisual(ZoomLevel);
@@ -201,13 +201,13 @@ namespace MapVisualization
             //var tile = (MapTileElement)Sender;
         }
 
-        protected void AddElement(MapElement Element)
+        private void AddElement(MapElement Element)
         {
             _elements.Add(Element);
             CheckVisual(Element);
         }
 
-        protected void RemoveElement(MapElement Element)
+        private void RemoveElement(MapElement Element)
         {
             CheckVisual(Element, false);
             _elements.Remove(Element);
@@ -361,19 +361,19 @@ namespace MapVisualization
 
         protected virtual void OnCentralPointChanged(EarthPoint newCentralPoint)
         {
-            Point screenCentralPoint = Projector.Project(newCentralPoint, ZoomLevel);
+            Point screenCentralPoint = _projector.Project(newCentralPoint, ZoomLevel);
             _globalTransform.X = Math.Round(-screenCentralPoint.X + ActualWidth / 2);
             _globalTransform.Y = Math.Round(-screenCentralPoint.Y + ActualHeight / 2);
 
             VisibleArea = new EarthArea(
                 // Top Left
-                Projector.InverseProject(screenCentralPoint + new Vector(-ActualWidth / 2, -ActualHeight / 2), ZoomLevel),
+                _projector.InverseProject(screenCentralPoint + new Vector(-ActualWidth / 2, -ActualHeight / 2), ZoomLevel),
                 // Bottom Left
-                Projector.InverseProject(screenCentralPoint + new Vector(-ActualWidth / 2, +ActualHeight / 2), ZoomLevel),
+                _projector.InverseProject(screenCentralPoint + new Vector(-ActualWidth / 2, +ActualHeight / 2), ZoomLevel),
                 // Top Right
-                Projector.InverseProject(screenCentralPoint + new Vector(+ActualWidth / 2, -ActualHeight / 2), ZoomLevel),
+                _projector.InverseProject(screenCentralPoint + new Vector(+ActualWidth / 2, -ActualHeight / 2), ZoomLevel),
                 // BottomRight
-                Projector.InverseProject(screenCentralPoint + new Vector(+ActualWidth / 2, +ActualHeight / 2), ZoomLevel)
+                _projector.InverseProject(screenCentralPoint + new Vector(+ActualWidth / 2, +ActualHeight / 2), ZoomLevel)
                 );
 
             RefreshTiles();

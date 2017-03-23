@@ -41,7 +41,7 @@ namespace MapVisualization.Elements
         /// <summary>Визуальный элемент, изображающий данный элемент карты</summary>
         internal MapVisual AttachedVisual { get; set; }
 
-        public Boolean IsMouseOver { get; private set; }
+        protected Boolean IsMouseOver { get; private set; }
 
         public int ZoomRestriction
         {
