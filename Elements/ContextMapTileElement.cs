@@ -4,18 +4,21 @@ using MapVisualization.TileLoaders;
 
 namespace MapVisualization.Elements
 {
-    public class MapImageTileElement : MapTileElement
+    public class ContextMapTileElement : MapTileElement
     {
         private readonly ITileLoadingContext _tileImage;
 
-        public MapImageTileElement(ITileLoadingContext TileImage, int HorizontalIndex, int VerticalIndex, int Zoom)
+        public ContextMapTileElement(ITileLoadingContext TileImage, int HorizontalIndex, int VerticalIndex, int Zoom)
             : base(HorizontalIndex, VerticalIndex)
         {
-            _tileImage = TileImage;
+            _tileImage       =  TileImage;
             _tileImage.Ready += (Sender, Args) => RequestChangeVisual();
         }
 
-        public override void Dispose() { _tileImage.Abort(); }
+        public override void Dispose()
+        {
+            _tileImage.Abort();
+        }
 
         protected override void DrawTile(DrawingContext dc, Rect TileRect)
         {

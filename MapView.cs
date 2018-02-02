@@ -122,8 +122,7 @@ namespace MapVisualization
                 {
                     if (!_tiles.Any(t => t.HorizontalIndex == x && t.VerticalIndex == y))
                     {
-                        ITileLoadingContext tileContext = TileLoader.GetTile(x, y, ZoomLevel);
-                        var tile = new MapImageTileElement(tileContext, x, y, ZoomLevel);
+                        var tile = TileLoader.GetTile(x, y, ZoomLevel);
                         AddTile(tile);
                     }
                 }

@@ -7,6 +7,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
+using MapVisualization.Elements;
 using MapVisualization.TileLoaders.TilePathProvider;
 
 namespace MapVisualization.TileLoaders
@@ -31,14 +32,13 @@ namespace MapVisualization.TileLoaders
         /// <param name="x">Горизонтальный индекс</param>
         /// <param name="y">Вертикальный индекс</param>
         /// <param name="zoom">Уровень масштабирования</param>
-        /// <returns>ImageSource тайла</returns>
-        public ITileLoadingContext GetTile(int x, int y, int zoom)
+        public MapTileElement GetTile(int x, int y, int zoom)
         {
             var context = new LoadingContext(_pathProvider.GetLocalPath(x, y, zoom),
                                              _pathProvider.GetWebPath(x, y, zoom),
                                              _webPool);
             context.BeginLoading();
-            return context;
+            return new ContextMapTileElement(context, x, y, zoom);
         }
 
         private class LoadingContext : ITileLoadingContext

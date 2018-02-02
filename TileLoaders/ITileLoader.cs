@@ -1,3 +1,5 @@
+using MapVisualization.Elements;
+
 namespace MapVisualization.TileLoaders
 {
     /// <summary>Интерфейс загрузчика тайлов карты</summary>
@@ -7,6 +9,6 @@ namespace MapVisualization.TileLoaders
         /// <param name="x">Горизонтальный индекс</param>
         /// <param name="y">Вертикальный индекс</param>
         /// <param name="zoom">Уровень масштабирования</param>
-        ITileLoadingContext GetTile(int x, int y, int zoom);
+        MapTileElement GetTile(int x, int y, int zoom);
     }
 }

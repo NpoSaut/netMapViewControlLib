@@ -47,14 +47,16 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Elements\ContextMapTileElement.cs" />
     <Compile Include="Elements\ZoomRestrictionAttribute.cs" />
     <Compile Include="MapVisualHost.cs" />
-    <Compile Include="Elements\MapImageTileElement.cs" />
+    <Compile Include="Elements\ImageSourceMapTileElement.cs" />
     <Compile Include="Elements\MapPathElement.cs" />
     <Compile Include="Elements\MapPointElement.cs" />
     <Compile Include="Elements\MapTileElement.cs" />
     <Compile Include="Properties\Annotations.cs" />
     <Compile Include="TileLoaders\ITileLoader.cs" />
+    <Compile Include="TileLoaders\SimpleWebTileLoader.cs" />
     <Compile Include="TileLoaders\TileLoadingContext.cs" />
     <Compile Include="TileLoaders\TilePathProvider\ITilePathProvider.cs" />
     <Compile Include="TileLoaders\TilePathProvider\OsmTilePathProviders.cs" />
