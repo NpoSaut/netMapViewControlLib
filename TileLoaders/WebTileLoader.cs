@@ -6,7 +6,6 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Media.Imaging;
 using MapVisualization.Elements;
 using MapVisualization.TileLoaders.TilePathProvider;
 
@@ -43,10 +42,10 @@ namespace MapVisualization.TileLoaders
 
         private class LoadingContext : ITileLoadingContext
         {
+            private readonly CancellationTokenSource _cancel = new CancellationTokenSource();
             private readonly string _localPath;
             private readonly string _webPath;
             private readonly WebPool _webPool;
-            private readonly CancellationTokenSource _cancel = new CancellationTokenSource();
 
             public LoadingContext(string LocalPath, string WebPath, WebPool WebPool)
             {
@@ -55,8 +54,8 @@ namespace MapVisualization.TileLoaders
                 _webPool   = WebPool;
             }
 
-            public       bool         IsReady { get; private set; }
-            public       BitmapImage  Image   { get; private set; }
+            public       bool         IsReady  { get; private set; }
+            public       Uri          ImageUri { get; private set; }
             public event EventHandler Ready;
 
             public void Abort()
@@ -74,17 +73,21 @@ namespace MapVisualization.TileLoaders
             {
                 try
                 {
-                    if (!File.Exists(_localPath))
-                    {
-                        var tileData           = await _webPool.Run(_webPath, _cancel.Token);
-                        var tilesDirectoryName = Path.GetDirectoryName(_localPath);
-                        if (tilesDirectoryName != null)
-                            Directory.CreateDirectory(tilesDirectoryName);
-                        File.WriteAllBytes(_localPath, tileData);
-                    }
+                    await Task.Run(async () =>
+                                   {
+                                       if (!File.Exists(_localPath))
+                                       {
+                                           var tileData = await _webPool.Run(_webPath, _cancel.Token)
+                                                                        .ConfigureAwait(false);
+                                           var tilesDirectoryName = Path.GetDirectoryName(_localPath);
+                                           if (tilesDirectoryName != null)
+                                               Directory.CreateDirectory(tilesDirectoryName);
+                                           File.WriteAllBytes(_localPath, tileData);
+                                       }
+                                   });
 
-                    Image   = new BitmapImage(new Uri(_localPath));
-                    IsReady = true;
+                    ImageUri = new Uri(_localPath);
+                    IsReady  = true;
                     OnReady();
                 }
                 catch (Exception e)
@@ -169,8 +172,6 @@ namespace MapVisualization.TileLoaders
 
             private void ClientOnDownloadDataCompleted(object Sender, DownloadDataCompletedEventArgs e)
             {
-                var result = e.Error?.Message ?? (e.Cancelled ? "Cancelled" : "Done");
-                Debug.Print($"Pool #{_id} compleated: {result}");
                 lock (_locker)
                 {
                     _currentTaskCancelRegistration.Dispose();

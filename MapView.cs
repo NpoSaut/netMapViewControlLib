@@ -18,7 +18,7 @@ namespace MapVisualization
             DependencyProperty.Register("TileLoader",
                                         typeof (ITileLoader),
                                         typeof (MapView),
-                                        new PropertyMetadata(new SimpleWebTileLoader(OsmTilePathProviders.Retina),
+                                        new PropertyMetadata(new WebTileLoader(OsmTilePathProviders.Retina),
                                             TileLoaderPropertyChangedCallback));
 
         public static readonly DependencyProperty ElementsSourceProperty =
