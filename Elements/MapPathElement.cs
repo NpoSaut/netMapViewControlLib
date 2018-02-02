@@ -14,7 +14,7 @@ namespace MapVisualization.Elements
         /// <summary>Создаёт новый многоточечный объект на карте</summary>
         /// <param name="Points">Точки, входящие в состав объекта</param>
         /// <param name="ScreenStep">Минимальная длинна сегмента для отрисовки на экране</param>
-        public MapPathElement(IList<EarthPoint> Points, double ScreenStep = 5)
+        protected MapPathElement(IList<EarthPoint> Points, double ScreenStep = 5)
         {
             this.Points = Points;
             _screenStepSquared = Math.Pow(ScreenStep, 2);

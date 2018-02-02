@@ -11,7 +11,7 @@ namespace MapVisualization
 
         /// <summary>Таблица масштабов</summary>
         /// <remarks>Задаёт масштаб (в метрах на пиксел) для разного уровня масштабирования</remarks>
-        private static readonly Dictionary<int, double> Scales =
+        private static readonly Dictionary<int, double> _scales =
             new Dictionary<int, double>
             {
                 { 18, 0.597164 },
@@ -41,13 +41,13 @@ namespace MapVisualization
         public Point Project(EarthPoint p, int Zoom)
         {
             var surfacePoint = (SurfacePoint)p;
-            double mpp = Scales[Zoom];
+            double mpp = _scales[Zoom];
             return new Point(Math.Round(surfacePoint.X / mpp), Math.Round(-surfacePoint.Y / mpp));
         }
 
         public EarthPoint InverseProject(Point Point, int Zoom)
         {
-            double mpp = Scales[Zoom];
+            double mpp = _scales[Zoom];
             var surfacePoint = new SurfacePoint(Point.X * mpp, -Point.Y * mpp);
             return (EarthPoint)surfacePoint;
         }

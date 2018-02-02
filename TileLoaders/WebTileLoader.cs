@@ -7,7 +7,7 @@ using MapVisualization.TileLoaders.TilePathProvider;
 
 namespace MapVisualization.TileLoaders
 {
-    /// <summary>Загрузчик тайлов, обеспечивающий кеширование тайлов в файловой системе</summary>
+    /// <summary>Загрузчик тайлов, обеспечивающий кэширование тайлов в файловой системе</summary>
     public class WebTileLoader : ITileLoader
     {
         private readonly ITilePathProvider _pathProvider;
@@ -49,7 +49,7 @@ namespace MapVisualization.TileLoaders
                     _webClient.CancelAsync();
             }
 
-            protected virtual void OnReady()
+            private void OnReady()
             {
                 EventHandler handler = Ready;
                 if (handler != null) handler(this, EventArgs.Empty);
@@ -64,7 +64,9 @@ namespace MapVisualization.TileLoaders
                         using (_webClient = new WebClient())
                         {
                             byte[] tileData = await _webClient.DownloadDataTaskAsync(_webPath);
-                            Directory.CreateDirectory(Path.GetDirectoryName(_localPath));
+                            var tilesDirectoryName = Path.GetDirectoryName(_localPath);
+                            if (tilesDirectoryName != null)
+                                Directory.CreateDirectory(tilesDirectoryName);
                             File.WriteAllBytes(_localPath, tileData);
                         }
                     }

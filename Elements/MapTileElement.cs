@@ -7,9 +7,8 @@ namespace MapVisualization.Elements
 {
     public abstract class MapTileElement : MapElement, IDisposable
     {
-        public MapTileElement(int HorizontalIndex, int VerticalIndex, int Zoom)
+        protected MapTileElement(int HorizontalIndex, int VerticalIndex)
         {
-            this.Zoom = Zoom;
             this.VerticalIndex = VerticalIndex;
             this.HorizontalIndex = HorizontalIndex;
         }
@@ -21,7 +20,6 @@ namespace MapVisualization.Elements
 
         public int HorizontalIndex { get; private set; }
         public int VerticalIndex { get; private set; }
-        public int Zoom { get; private set; }
 
         protected override void Draw(DrawingContext dc, int RenderZoom)
         {
@@ -30,7 +28,6 @@ namespace MapVisualization.Elements
             dc.PushGuidelineSet(ScreenGuidelineSet);
             var tileRect = new Rect(topLeftPointScreenProjection, new Size(256, 256));
             DrawTile(dc, tileRect);
-            //dc.DrawRectangle(null, new Pen(Brushes.Gray, 2), tileRect);
         }
 
         protected abstract void DrawTile(DrawingContext dc, Rect TileRect);
