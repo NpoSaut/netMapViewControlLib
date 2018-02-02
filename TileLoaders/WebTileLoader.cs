@@ -1,18 +1,31 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using MapVisualization.TileLoaders.TilePathProvider;
 
 namespace MapVisualization.TileLoaders
 {
     /// <summary>Загрузчик тайлов, обеспечивающий кэширование тайлов в файловой системе</summary>
-    public class WebTileLoader : ITileLoader
+    public class WebTileLoader : ITileLoader, IDisposable
     {
         private readonly ITilePathProvider _pathProvider;
+        private readonly WebPool _webPool = new WebPool(10);
 
-        public WebTileLoader(ITilePathProvider PathProvider) { _pathProvider = PathProvider; }
+        public WebTileLoader(ITilePathProvider PathProvider)
+        {
+            _pathProvider = PathProvider;
+        }
+
+        public void Dispose()
+        {
+            _webPool?.Dispose();
+        }
 
         /// <summary>Загружает тайл с указанными индексами</summary>
         /// <param name="x">Горизонтальный индекс</param>
@@ -22,7 +35,8 @@ namespace MapVisualization.TileLoaders
         public ITileLoadingContext GetTile(int x, int y, int zoom)
         {
             var context = new LoadingContext(_pathProvider.GetLocalPath(x, y, zoom),
-                                             _pathProvider.GetWebPath(x, y, zoom));
+                                             _pathProvider.GetWebPath(x, y, zoom),
+                                             _webPool);
             context.BeginLoading();
             return context;
         }
@@ -31,28 +45,29 @@ namespace MapVisualization.TileLoaders
         {
             private readonly string _localPath;
             private readonly string _webPath;
-            private WebClient _webClient;
+            private readonly WebPool _webPool;
+            private readonly CancellationTokenSource _cancel = new CancellationTokenSource();
 
-            public LoadingContext(string LocalPath, string WebPath)
+            public LoadingContext(string LocalPath, string WebPath, WebPool WebPool)
             {
                 _localPath = LocalPath;
-                _webPath = WebPath;
+                _webPath   = WebPath;
+                _webPool   = WebPool;
             }
 
-            public bool IsReady { get; private set; }
-            public BitmapImage Image { get; private set; }
+            public       bool         IsReady { get; private set; }
+            public       BitmapImage  Image   { get; private set; }
             public event EventHandler Ready;
 
             public void Abort()
             {
-                if (_webClient != null)
-                    _webClient.CancelAsync();
+                _cancel.Cancel();
             }
 
             private void OnReady()
             {
-                EventHandler handler = Ready;
-                if (handler != null) handler(this, EventArgs.Empty);
+                var handler = Ready;
+                handler?.Invoke(this, EventArgs.Empty);
             }
 
             public async void BeginLoading()
@@ -61,16 +76,14 @@ namespace MapVisualization.TileLoaders
                 {
                     if (!File.Exists(_localPath))
                     {
-                        using (_webClient = new WebClient())
-                        {
-                            byte[] tileData = await _webClient.DownloadDataTaskAsync(_webPath);
-                            var tilesDirectoryName = Path.GetDirectoryName(_localPath);
-                            if (tilesDirectoryName != null)
-                                Directory.CreateDirectory(tilesDirectoryName);
-                            File.WriteAllBytes(_localPath, tileData);
-                        }
+                        var tileData           = await _webPool.Run(_webPath, _cancel.Token);
+                        var tilesDirectoryName = Path.GetDirectoryName(_localPath);
+                        if (tilesDirectoryName != null)
+                            Directory.CreateDirectory(tilesDirectoryName);
+                        File.WriteAllBytes(_localPath, tileData);
                     }
-                    Image = new BitmapImage(new Uri(_localPath));
+
+                    Image   = new BitmapImage(new Uri(_localPath));
                     IsReady = true;
                     OnReady();
                 }
@@ -78,6 +91,126 @@ namespace MapVisualization.TileLoaders
                 {
                     Debug.Print(" # Load tile error: {0}", e.Message);
                 }
+            }
+        }
+
+        private class WebPool : IDisposable
+        {
+            private readonly object _locker = new object();
+
+            private readonly List<WebPoolElement> _pool;
+
+            public WebPool(int PoolSize)
+            {
+                _pool = Enumerable.Range(0, PoolSize)
+                                  .Select(id => new WebPoolElement(id))
+                                  .ToList();
+            }
+
+            public void Dispose()
+            {
+                foreach (var poolElement in _pool) poolElement.Dispose();
+            }
+
+            public Task<byte[]> Run(string Url, CancellationToken Cancel)
+            {
+                lock (_locker)
+                {
+                    Cancel.ThrowIfCancellationRequested();
+                    return _pool.OrderBy(e => e.QueueSize)
+                                .First()
+                                .Run(Url, Cancel);
+                }
+            }
+        }
+
+        private class WebPoolElement : IDisposable
+        {
+            private readonly WebClient _client = new WebClient();
+            private readonly int _id;
+            private readonly object _locker = new object();
+            private readonly Queue<PoolTask> _tasks = new Queue<PoolTask>();
+            private PoolTask _currentTask;
+            private CancellationTokenRegistration _currentTaskCancelRegistration;
+
+            public WebPoolElement(int Id)
+            {
+                _id                           =  Id;
+                _client.DownloadDataCompleted += ClientOnDownloadDataCompleted;
+            }
+
+            public int QueueSize => _tasks.Count;
+
+            public void Dispose()
+            {
+                _client?.Dispose();
+            }
+
+            private void Next()
+            {
+                lock (_locker)
+                {
+                    if (_tasks.Count > 0)
+                    {
+                        var task = _tasks.Dequeue();
+                        if (!task.Cancel.IsCancellationRequested)
+                        {
+                            _currentTask = task;
+                            _client.DownloadDataAsync(new Uri(_currentTask.Url));
+                            _currentTaskCancelRegistration = _currentTask.Cancel.Register(_client.CancelAsync);
+                        }
+                        else
+                        {
+                            Next();
+                        }
+                    }
+                }
+            }
+
+            private void ClientOnDownloadDataCompleted(object Sender, DownloadDataCompletedEventArgs e)
+            {
+                var result = e.Error?.Message ?? (e.Cancelled ? "Cancelled" : "Done");
+                Debug.Print($"Pool #{_id} compleated: {result}");
+                lock (_locker)
+                {
+                    _currentTaskCancelRegistration.Dispose();
+                    if (e.Error != null)
+                        _currentTask.CompletionSource.SetException(e.Error);
+                    else if (e.Cancelled)
+                        _currentTask.CompletionSource.SetCanceled();
+                    else
+                        _currentTask.CompletionSource.SetResult(e.Result);
+
+                    _currentTask = null;
+                    Next();
+                }
+            }
+
+            public Task<byte[]> Run(string Url, CancellationToken Cancel)
+            {
+                lock (_locker)
+                {
+                    Cancel.ThrowIfCancellationRequested();
+                    var task = new PoolTask(Url, Cancel);
+                    _tasks.Enqueue(task);
+                    if (_currentTask == null)
+                        Next();
+                    return task.CompletionSource.Task;
+                }
+            }
+
+            private class PoolTask
+            {
+                public PoolTask(string Url, CancellationToken Cancel)
+                {
+                    this.Url         = Url;
+                    this.Cancel      = Cancel;
+                    CompletionSource = new TaskCompletionSource<byte[]>();
+                }
+
+                public string                       Url              { get; }
+                public CancellationToken            Cancel           { get; }
+                public TaskCompletionSource<byte[]> CompletionSource { get; }
             }
         }
     }
