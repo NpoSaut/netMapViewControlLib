@@ -6,7 +6,7 @@ namespace MapVisualization.TileLoaders
     public interface ITileLoadingContext
     {
         bool IsReady { get; }
-        Uri ImageUri { get; }
+        BitmapImage Image { get; }
         event EventHandler Ready;
         void Abort();
     }

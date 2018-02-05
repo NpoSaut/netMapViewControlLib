@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Media.Imaging;
 using MapVisualization.Elements;
 using MapVisualization.TileLoaders.TilePathProvider;
 
@@ -54,14 +55,15 @@ namespace MapVisualization.TileLoaders
                 _webPool   = WebPool;
             }
 
-            public       bool         IsReady  { get; private set; }
-            public       Uri          ImageUri { get; private set; }
+            public bool               IsReady { get; private set; }
             public event EventHandler Ready;
 
             public void Abort()
             {
                 _cancel.Cancel();
             }
+
+            public BitmapImage Image { get; private set; }
 
             private void OnReady()
             {
@@ -73,21 +75,21 @@ namespace MapVisualization.TileLoaders
             {
                 try
                 {
-                    await Task.Run(async () =>
-                                   {
-                                       if (!File.Exists(_localPath))
-                                       {
-                                           var tileData = await _webPool.Run(_webPath, _cancel.Token)
-                                                                        .ConfigureAwait(false);
-                                           var tilesDirectoryName = Path.GetDirectoryName(_localPath);
-                                           if (tilesDirectoryName != null)
-                                               Directory.CreateDirectory(tilesDirectoryName);
-                                           File.WriteAllBytes(_localPath, tileData);
-                                       }
-                                   });
+                    if (!File.Exists(_localPath))
+                    {
+                        var tileData = await _webPool.Run(_webPath, _cancel.Token)
+                                                     .ConfigureAwait(false);
 
-                    ImageUri = new Uri(_localPath);
-                    IsReady  = true;
+                        var tilesDirectoryName = Path.GetDirectoryName(_localPath);
+                        if (tilesDirectoryName != null)
+                            Directory.CreateDirectory(tilesDirectoryName);
+                        File.WriteAllBytes(_localPath, tileData);
+                    }
+
+                    Image = new BitmapImage(new Uri(_localPath));
+                    Image.Freeze();
+
+                    IsReady = true;
                     OnReady();
                 }
                 catch (Exception e)
