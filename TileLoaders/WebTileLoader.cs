@@ -75,7 +75,7 @@ namespace MapVisualization.TileLoaders
             {
                 try
                 {
-                    if (!File.Exists(_localPath))
+                    if (!File.Exists(_localPath) || DateTime.Now - File.GetLastWriteTime(_localPath) > TimeSpan.FromDays(40))
                     {
                         var tileData = await _webPool.Run(_webPath, _cancel.Token)
                                                      .ConfigureAwait(false);
