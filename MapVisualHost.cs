@@ -42,7 +42,7 @@ namespace MapVisualization
         protected void DeleteVisual(MapVisual v) { _visuals.Remove(v); }
 
         /// <summary>Проверяет попадание мыши по элементу карты</summary>
-        public MapVisual HitVisual(Point point) { return VisualTreeHelper.HitTest(this, point).VisualHit as MapVisual; }
+        public MapVisual HitVisual(Point point) { return VisualTreeHelper.HitTest(this, point)?.VisualHit as MapVisual; }
 
         private MapElement safeGetElement(MapVisual Visual) { return Visual != null ? Visual.Element : null; }
 
@@ -61,6 +61,7 @@ namespace MapVisualization
 
         protected override void OnMouseDown(MouseButtonEventArgs e)
         {
+            CaptureMouse();
             _clickButton = e.ChangedButton;
             _mouseDownOnElement = safeGetElement(HitVisual(e.GetPosition(this)));
             base.OnMouseDown(e);
@@ -75,6 +76,7 @@ namespace MapVisualization
                     mouseUpOnElement.OnMouseClick(e);
             }
             _clickButton = null;
+            ReleaseMouseCapture();
             base.OnMouseUp(e);
         }
     }
