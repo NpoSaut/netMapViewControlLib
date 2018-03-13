@@ -25,7 +25,6 @@ namespace MapVisualization.Elements
         {
             EarthPoint topLeftPoint = OsmIndexes.GetTopLeftPoint(HorizontalIndex, VerticalIndex, RenderZoom);
             Point topLeftPointScreenProjection = Projector.Project(topLeftPoint, RenderZoom);
-            dc.PushGuidelineSet(ScreenGuidelineSet);
             var tileRect = new Rect(topLeftPointScreenProjection, new Size(256, 256));
             DrawTile(dc, tileRect);
         }
