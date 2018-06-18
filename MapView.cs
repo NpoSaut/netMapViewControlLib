@@ -314,17 +314,14 @@ namespace MapVisualization
 
         #region VisibleArea DependencyProperty
 
-        public static readonly DependencyPropertyKey VisibleAreaPropertyKey = DependencyProperty
-            .RegisterReadOnly("VisibleArea", typeof (EarthArea), typeof (MapView),
-                              new PropertyMetadata(default(EarthArea), VisibleAreaPropertyChangedCallback));
-
-        public static readonly DependencyProperty VisibleAreaProperty =
-            VisibleAreaPropertyKey.DependencyProperty;
+        public static readonly DependencyProperty VisibleAreaProperty = DependencyProperty
+            .Register("VisibleArea", typeof(EarthArea), typeof(MapView),
+                      new PropertyMetadata(default(EarthArea), VisibleAreaPropertyChangedCallback));
 
         public EarthArea VisibleArea
         {
-            get { return (EarthArea)GetValue(VisibleAreaProperty); }
-            protected set { SetValue(VisibleAreaPropertyKey, value); }
+            get => (EarthArea)GetValue(VisibleAreaProperty);
+            protected set => SetValue(VisibleAreaProperty, value);
         }
 
         private static void VisibleAreaPropertyChangedCallback(DependencyObject Obj,
