@@ -29,7 +29,8 @@ namespace MapVisualization.TileLoaders.TilePathProvider
         {
             return _webPath.Replace("{x}", x.ToString())
                            .Replace("{y}", y.ToString())
-                           .Replace("{zoom}", zoom.ToString());
+                           .Replace("{zoom}", zoom.ToString())
+                           .Replace("{r}", "@2x");
         }
     }
 }
