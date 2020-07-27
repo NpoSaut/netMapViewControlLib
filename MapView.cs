@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Drawing;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
@@ -9,6 +10,7 @@ using Geographics;
 using MapVisualization.Elements;
 using MapVisualization.TileLoaders;
 using MapVisualization.TileLoaders.TilePathProvider;
+using Point = System.Windows.Point;
 
 namespace MapVisualization
 {
